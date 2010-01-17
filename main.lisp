@@ -7,6 +7,26 @@
 
 (in-package :amarok-control)
 
+;; environment getting
+(defun env-kded4-pid ()
+  (let ((stream (make-string-output-stream)))
+      (sb-ext:run-program "/bin/pidof" '("kded4") :wait t :output stream)
+      (string-trim '(#\Newline) (get-output-stream-string stream))))
+
+(defun env-dbus-address ()
+  (with-open-file (stream (concatenate 'string "/proc/" (env-kded4-pid) "/environ"))
+    (let ((line (read-line stream)))
+            (subseq line
+                    (+ (search "DBUS_SESSION_BUS_ADDRESS" line) 25)
+                    (- (search "XDG_DATA_DIRS" line) 1)))))
+
+(defun amarok-control (method)
+  (sb-ext:run-program "/usr/bin/dbus-send" 
+                      (list "--type=method_call" "--dest=org.kde.amarok" "/Player" (concatenate 'string "org.freedesktop.MediaPlayer." method))
+                      :wait t
+                      :environment (list (concatenate 'string "DBUS_SESSION_BUS_ADDRESS=" (env-dbus-address)))))
+
+
 (setf *dispatch-table*
       (list #'dispatch-easy-handlers
             #'default-dispatcher))
