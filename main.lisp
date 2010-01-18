@@ -20,9 +20,9 @@
                     (+ (search "DBUS_SESSION_BUS_ADDRESS" line) 25)
                     (- (search "XDG_DATA_DIRS" line) 1)))))
 
-(defun amarok-control (method)
+(defun amarok-control (method &optional &key (dest "org.kde.amarok") (path "/Player") (base-method "org.freedesktop.MediaPlayer."))
   (sb-ext:run-program "/usr/bin/dbus-send" 
-                      (list "--type=method_call" "--dest=org.kde.amarok" "/Player" (concatenate 'string "org.freedesktop.MediaPlayer." method))
+                      (list "--type=method_call" dest path (concatenate 'string base-method method))
                       :wait t
                       :environment (list (concatenate 'string "DBUS_SESSION_BUS_ADDRESS=" (env-dbus-address)))))
 
