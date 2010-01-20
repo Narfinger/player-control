@@ -20,10 +20,15 @@
 (defparameter *dbus-environment* (env-dbus-address))
 
 (defun dbus-send (method &optional &key (dest "org.kde.amarok") (path "/Player"))
-  (sb-ext:run-program "/usr/bin/dbus-send" 
-                      (list "--type=method_call" dest path method)
-                      :wait t
-                      :environment (list (concatenate 'string "DBUS_SESSION_BUS_ADDRESS=" *dbus-environment*))))
+  (let* ((error-stream (make-string-output-stream))
+         (argument-list (list "--type=method_call" (concatenate 'string "--dest=" dest) path method))
+        (process (sb-ext:run-program "/usr/bin/dbus-send" 
+                                     argument-list
+                                     :wait t
+                                     :environment (list (concatenate 'string "DBUS_SESSION_BUS_ADDRESS=" *dbus-environment*))
+                                     :error error-stream)))
+    (when (equal (sb-ext:process-exit-code process) 1)
+      (get-output-stream-string error-stream))))
 
 
 ;; various wrappers for convenience
