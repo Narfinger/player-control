@@ -9,6 +9,10 @@
       (list #'dispatch-easy-handlers
             #'default-dispatcher))
 
+(push (create-static-file-dispatcher-and-handler "/style.css" "./style.css")
+      *dispatch-table*)
+
+
 ;; (push (hunchentoot:create-prefix-dispatcher "/execute" 'execute-page)
 ;;       hunchentoot:*dispatch-table*)
 ;; (setq hunchentoot:*dispatch-table*
@@ -50,6 +54,7 @@
         (:html
          (:head
           (:meta :http-euiv "refresh" :content "60")
+          (:link :rel "stylesheet" :type "text/css" :href "style.css")
           (:title "Amarok Control"))
          ;; color is not right i think
          (:body :bgcolor "white" :color "black"
