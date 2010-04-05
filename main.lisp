@@ -85,8 +85,12 @@
                                  (:input :type "hidden" :name "what" :value "play")))
                          (:td
                           (:form :action "/execute" :method "get"
-                                 (:input :type "submit" :value "pause")
+                                 (:input :type "submit" :value "Pause")
                                  (:input :type "hidden" :name "what" :value "pause")))
+                         (:td
+                          (:form :action "/execute" :method "get"
+                                 (:input :type "submit" :value "PlayPause")
+                                 (:input :type "hidden" :name "what" :value "pp")))
                          (:td
                           (:form :action "/execute" :method "get"
                                  (:input :type "submit" :value "Stop")
@@ -120,6 +124,8 @@
      (amarok-pause))
     ((equal what "play")
      (amarok-play))
+    ((equal what "pp")
+     (amarok-playpause))
     ((equal what "next")
      (amarok-next))
     ((equal what "prev")
