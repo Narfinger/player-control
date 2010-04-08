@@ -53,7 +53,7 @@
       (with-html-output-to-string (*standard-output* nil :indent t)
         (:html
          (:head
-          (:meta :http-euiv "refresh" :content "60")
+          (:meta :http-equiv "refresh" :content "60")
           (:link :rel "stylesheet" :type "text/css" :href "style.css")
           (:title "Amarok Control"))
          ;; color is not right i think
