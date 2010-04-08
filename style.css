@@ -18,32 +18,32 @@ h1 {
     border-bottom:solid thin black;
   }
 
-/*table*/
-table.tb {
-	border-collapse:collapse;
-	empty-cells:hide;
+/* music class */
+.music {
+    border-width: 1px;
+    border-style: solid;
+    text-align: center;
+    border-collapse: collapse;
 }
-  
-table.tb td{ 
-	border: 2px; 
-	border-style: ridge;
-	text-align:justify;
+.music tr {
+    border-width: 1px;
+    border-style: solid;
 }
-table.tb th{
- 	border-left-style:solid;
- 	border-left-width:1px;
- 	border-left-color:#A3A3A3;
- 
-  	border-right-style:solid;
-  	border-right-width:1px;
-	border-right-color:#A3A3A3;
-  	
-  	border-bottom-style:solid;
-  	border-bottom-width:1px;
-  	border-bottom-color:#A3A3A3;
-  	
-  	padding-left: 4px;
-  	padding-right:4px;
-  	text-align:center;
-  	font-weight:bold;
+
+.music td { 
+    border-width: 1px;
+    border-style: solid;
+    text-align:center;
+    border-collapse:collapse;
+    padding-left: 10px;
+    padding-right: 10px;
+    padding-top: 5px;
+    padding-bottom: 5px;
+}
+
+.music th {
+    border-width: 1px;
+    border-style: solid;
+    border-bottom-width: 2px;
+    /* background-color: #F7F7F7; */
 }

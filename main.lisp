@@ -59,7 +59,7 @@
          ;; color is not right i think
          (:body :bgcolor "white" :color "black"
                 (:h1 "Amarok Control")
-                (:table :border 3
+                (:table :class "music"
                         (:tr
                          (:th "Artist")
                          (:th "Title")
