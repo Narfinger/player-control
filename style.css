@@ -18,6 +18,13 @@ h1 {
     border-bottom:solid thin black;
   }
 
+.status {
+    font-family: sans;
+    font-style: normal;
+    font-size: 100%;
+    font-weight: bold;
+}
+
 /* music class */
 .music {
     border-width: 1px;

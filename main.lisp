@@ -49,7 +49,8 @@
   (let* ((metadata (amarok-metadata))
          (artist (extract-artist-from-metadata metadata))
          (title (extract-title-from-metadata metadata))
-         (album (extract-album-from-metadata metadata)))
+         (album (extract-album-from-metadata metadata))
+         (current-action (get-playstatus-string)))
       (with-html-output-to-string (*standard-output* nil :indent t)
         (:html
          (:head
@@ -69,6 +70,7 @@
                          (:td (str title))
                          (:td (str album))))
                 (:h2 "Controls")
+                (:p :class "status" "Status: " (str current-action))
                 (:table :border 0
                         (:tr
                          (:td 

@@ -94,13 +94,13 @@
 (extract-from-metadata extract-album-from-metadata "album")
 (extract-from-metadata extract-title-from-metadata "title")
 
-(defun get-status()
+(defun get-status ()
   (let ((output (dbus-send "org.freedesktop.MediaPlayer.GetStatus" :print-output t))
-        (list (list))
-        (counter 0))
+        (list (list)))
     (cl-ppcre:do-register-groups (first)
-        ("int32\\s+(.*)" output)
-      (push (parse-integer first) list))
+        ("int32\\s+([0-9]*)" output)
+      (when first                       ;this is needed because strange compiler stuff
+        (push (parse-integer first) list)))
     (nreverse list)))
 
 ;; description for GetStatus return
@@ -121,3 +121,6 @@
        'PAUSED)
       ((equal value 2)
        'STOPPED))))
+
+(defun get-playstatus-string ()
+  (nstring-capitalize (symbol-name (get-playstatus (get-status)))))
