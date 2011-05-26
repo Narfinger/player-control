@@ -1,6 +1,7 @@
 (require :asdf)
 (pushnew "amarok-control" asdf:*central-registry* :test #'equal)
 
+
 ;(asdf:load-system :amarok-control)
 (require :amarok-control)
 
