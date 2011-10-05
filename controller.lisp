@@ -10,7 +10,8 @@
 
 
 ;(defparameter base-url "org.kde.amarok")
-(defparameter base-url "org.mpris.audacious")
+;(defparameter base-url "org.mpris.audacious")
+(defparameter base-url "org.mpris.clementine")
 ;; environment getting
 (defun env-kded4-pid ()
   (let ((stream (make-string-output-stream)))
