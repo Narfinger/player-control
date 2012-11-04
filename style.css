@@ -9,48 +9,101 @@ INPUT {
     color: #000000;
   }
 
-
+@media screen {
 /*only used for login*/
-h1 {
-    font-size:300%;
-    /*font-style:underline;*/
-    font-weight:bold;
-    border-bottom:solid thin black;
-  }
+    h1 {
+        font-size:300%;
+        /* font-style:underline; */
+        font-weight:bold;
+        border-bottom:solid thin black;
+    }
+    
+    .status {
+        font-family: sans;
+        font-style: normal;
+        font-size: 100%;
+        font-weight: bold;
+    }
 
-.status {
-    font-family: sans;
-    font-style: normal;
-    font-size: 100%;
-    font-weight: bold;
-}
+    /* music class */
+    .music {
+        border-width: 1px;
+        border-style: solid;
+        text-align: center;
+        border-collapse: collapse;
+    }
+    .music tr {
+        border-width: 1px;
+        border-style: solid;
+    }
 
-/* music class */
-.music {
-    border-width: 1px;
-    border-style: solid;
-    text-align: center;
-    border-collapse: collapse;
-}
-.music tr {
-    border-width: 1px;
-    border-style: solid;
-}
+    .music td { 
+        border-width: 1px;
+        border-style: solid;
+        text-align:center;
+        border-collapse:collapse;
+        padding-left: 10px;
+        padding-right: 10px;
+        padding-top: 5px;
+        padding-bottom: 5px;
+    }
 
-.music td { 
-    border-width: 1px;
-    border-style: solid;
-    text-align:center;
-    border-collapse:collapse;
-    padding-left: 10px;
-    padding-right: 10px;
-    padding-top: 5px;
-    padding-bottom: 5px;
-}
-
-.music th {
-    border-width: 1px;
-    border-style: solid;
-    border-bottom-width: 2px;
+    .music th {
+        border-width: 1px;
+        border-style: solid;
+        border-bottom-width: 2px;
     /* background-color: #F7F7F7; */
+    }
+}
+
+@media only screen and (max-device-width: 480px)
+{
+    h1 {
+        font-size:600%;
+        /*font-style:underline;*/
+        font-weight:bold;
+        border-bottom:solid thin black;
+    }
+    
+    .status {
+        font-family: sans;
+        font-style: normal;
+        font-size: 250%;
+        font-weight: bold;
+    }
+
+    /* /\* music class *\/ */
+    .music {
+        border-width: 1px;
+        border-style: solid;
+        text-align: center;
+        border-collapse: collapse;
+    }
+    .music tr {
+        border-width: 1px;
+        border-style: solid;
+    }
+
+    .music td {
+        font-size: 300%;
+        border-width: 1px;
+        border-style: solid;
+        text-align:center;
+        border-collapse:collapse;
+        padding-left: 10px;
+        padding-right: 10px;
+        padding-top: 5px;
+        padding-bottom: 5px;
+    }
+
+    .music th {
+        border-width: 1px;
+        border-style: solid;
+        border-bottom-width: 2px;
+    /* background-color: #F7F7F7; */
+    }
+    
+    button {
+        font-size: 290%;
+    }
 }

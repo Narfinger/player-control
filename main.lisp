@@ -5,20 +5,15 @@
 (in-package :amarok-control)
 
 
+;; (setf *dispatch-table*
+;;       (list #'dispatch-easy-handlers
+;;             #'default-dispatcher))
+
 (setf *dispatch-table*
-      (list #'dispatch-easy-handlers
-            #'default-dispatcher))
+      (list #'dispatch-easy-handlers))
 
 (push (create-static-file-dispatcher-and-handler "/style.css" "./style.css")
       *dispatch-table*)
-
-
-;; (push (hunchentoot:create-prefix-dispatcher "/execute" 'execute-page)
-;;       hunchentoot:*dispatch-table*)
-;; (setq hunchentoot:*dispatch-table*
-;;       (list (hunchentoot:create-prefix-dispatcher "/amarok.html" 'index-dispatcher)
-;;             (hunchentoot:create-prefix-dispatcher "/test.html" 'testpage)))
-;(defvar *ht-server* (hunchentoot:start-server :port 8080))
 
 (defmacro with-http-authentication (&rest body)
   `(multiple-value-bind (username password) (hunchentoot:authorization)
@@ -26,36 +21,53 @@
             ,@body)
            (t (hunchentoot:require-authorization "amarok-control")))))
 
-;; (defun generate-index-page ()
-;;   (with-http-authentication
-;;       (with-html-output (*standard-output* nil :indent t)
-;;         (:html
-;;          (:head
-;;           (:title "Amarok Control"))
-;;          ;; color is not right i think
-;;          (:body :bgcolor "white" :color "green"
-;;                 (:p "Dies ist ein Test"))))))
+(defconstant amarok-controls
+  (with-html-output-to-string (*standard-ouptput* nil :indent nil)
+    (:table :border 0
+            (:tr
+             (:td 
+              (:form :action "/execute" :method "get"
+                     (:button :type "submit" :name "what" :value "prev" "Previous")))
+             (:td 
+              (:form :action "/execute" :method "get"
+                     (:button :type "submit" :name "what" :value "next" "Next")))
+             (:td
+              (:form :action "/execute" :method "get"
+                     (:button :type "submit" :name "what" :value "play" "Play")))
+             (:td
+              (:form :action "/execute" :method "get"
+                     (:button :type "submit" :name "what" :value "pause" "Pause")))
+             (:td
+              (:form :action "/execute" :method "get"
+                     (:button :type "submit" :name "what" :value "pp" "PlayPause")))
+             (:td
+              (:form :action "/execute" :method "get"
+                     (:button :type "submit" :name "what" :value "stop" "Stop")))))))
 
-;; (defun index-dispatcher ()
-;;   (cond 
-;;     ((eq (hunchentoot:request-method) :POST)
-;;      (testpage))
-;;     ((eq (hunchentoot:request-method) :GET)
-;;      (generate-index-page nil))))
+(defconstant serieviewer-controls
+  (with-html-output-to-string (*standard-output* nil :indent nil)
+    (:table :border 0
+            (:tr
+             (:td
+              (:form :action "/execute" :method "get"
+                     (:button :type "submit" :value "playnexts" "Play Next Episode in Series")))))))
 
-;(defun generate-index-page ( additional-message )
 (define-easy-handler (amarok :uri "/" :default-request-type :GET)
     ((what :parameter-type 'string))
   (let* ((metadata (amarok-metadata))
          (artist (extract-artist-from-metadata metadata))
          (title (extract-title-from-metadata metadata))
          (album (extract-album-from-metadata metadata))
-         (current-action (get-playstatus-string)))
+         (current-action (get-playstatus-string))
+         (serieviewer-running (serieviewer-get-status-string))
+         ;; (number (random 100))
+         )
       (with-html-output-to-string (*standard-output* nil :indent t)
         (:html
          (:head
           (:meta :http-equiv "refresh" :content "60")
-          (:link :rel "stylesheet" :type "text/css" :href "style.css")
+          ;; (:link :rel "stylesheet" :type "text/css" :href (concatenate 'string "style.css?" (write-to-string number)))
+          (:link :rel "stylesheet" :type "text/css" :href "style.css" )
           (:title "Amarok Control"))
          ;; color is not right i think
          (:body :bgcolor "white" :color "black"
@@ -70,33 +82,12 @@
                          (:td (str title))
                          (:td (str album))))
                 (:h2 "Controls")
+                (str amarok-controls)
                 (:p :class "status" "Status: " (str current-action))
-                (:table :border 0
-                        (:tr
-                         (:td 
-                          (:form :action "/execute" :method "get"
-                                 (:input :type "submit" :value "Previous")
-                                 (:input :type "hidden" :name "what" :value "prev")))
-                         (:td 
-                          (:form :action "/execute" :method "get"
-                                 (:input :type "submit" :value "Next")
-                                 (:input :type "hidden" :name "what" :value "next")))
-                         (:td
-                          (:form :action "/execute" :method "get"
-                                 (:input :type "submit" :value "Play")
-                                 (:input :type "hidden" :name "what" :value "play")))
-                         (:td
-                          (:form :action "/execute" :method "get"
-                                 (:input :type "submit" :value "Pause")
-                                 (:input :type "hidden" :name "what" :value "pause")))
-                         (:td
-                          (:form :action "/execute" :method "get"
-                                 (:input :type "submit" :value "PlayPause")
-                                 (:input :type "hidden" :name "what" :value "pp")))
-                         (:td
-                          (:form :action "/execute" :method "get"
-                                 (:input :type "submit" :value "Stop")
-                                 (:input :type "hidden" :name "what" :value "stop"))))))))))
+
+                (:h1 "Serieviewer")
+                (:p :class "status" "Status: " (str serieviewer-running))
+                (str serieviewer-controls))))))
 
 ;different forms with different fields could also work
 (defun testpage ()
@@ -133,5 +124,7 @@
     ((equal what "prev")
      (amarok-previous))
     ((equal what "stop")
-     (amarok-stop)))
+     (amarok-stop))
+    ((equal what "playnexts")
+     (serieviewer-play)))
   (redirect "/"))

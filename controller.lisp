@@ -1,3 +1,4 @@
+
 (defpackage :amarok-control
   (:use :common-lisp :hunchentoot :cl-who :split-sequence))
 
@@ -9,9 +10,9 @@
 (require :cl-ppcre)
 
 
-;(defparameter base-url "org.kde.amarok")
-;(defparameter base-url "org.mpris.audacious")
-(defparameter base-url "org.mpris.clementine")
+(defparameter base-url-serieviewer "org.serieviewer")
+(defparameter base-url-media "org.mpris.clementine")
+
 ;; environment getting
 (defun env-kded4-pid ()
   (let ((stream (make-string-output-stream)))
@@ -27,7 +28,7 @@
 
 (defparameter *dbus-environment* (env-dbus-address))
 
-(defun dbus-send (method &optional &key (dest base-url) (path "/Player") (print-output nil))
+(defun dbus-send (method &optional &key (dest base-url-media) (path "/Player") (print-output nil))
   (let* ((error-stream (make-string-output-stream))
          (output-stream (make-string-output-stream))
          (argument-list (list 
@@ -49,8 +50,24 @@
      
          
 
+;; serieviewer wrapper
+(defun serieviewer-play ()
+  (dbus-send "org.serieviewer.playNextInSerie" :dest base-url-serieviewer :path "/Serieviewer" :print-output t))
+  
+(defun serieviewer-get-status ()
+  "checks if serieviewer is running"
+  (multiple-value-bind (returnvalue error) 
+      (dbus-send "org.freedesktop.DBus.Introspectable.Introspect" :dest base-url-serieviewer :path "/Serieviewer" :print-output t)
+    (not error)))
+      
+(defun serieviewer-get-status-string ()
+  (if (serieviewer-get-status)
+      "Running"
+      "Not running"))
 
-;; various wrappers for convenience
+
+;; MEDIA Player
+;; various wrappers for convenience around media player
 (defun amarok-play ()
   (dbus-send "org.freedesktop.MediaPlayer.Play" :print-output t))
 
@@ -95,7 +112,7 @@
 (extract-from-metadata extract-album-from-metadata "album")
 (extract-from-metadata extract-title-from-metadata "title")
 
-(defun get-status ()
+(defun amarok-get-status ()
   (let ((output (dbus-send "org.freedesktop.MediaPlayer.GetStatus" :print-output t))
         (list (list)))
     (cl-ppcre:do-register-groups (first)
@@ -113,7 +130,7 @@
 (deftype playing ()
   '(member PLAYING PAUSED STOPPED))
 
-(defun get-playstatus(status-list)
+(defun amarok-get-playstatus(status-list)
   (let ((value (car status-list)))
     (cond
       ((equal value 0)
@@ -124,4 +141,4 @@
        'STOPPED))))
 
 (defun get-playstatus-string ()
-  (nstring-capitalize (symbol-name (get-playstatus (get-status)))))
+  (nstring-capitalize (symbol-name (amarok-get-playstatus (amarok-get-status)))))
