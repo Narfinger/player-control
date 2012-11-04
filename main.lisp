@@ -15,13 +15,13 @@
 (push (create-static-file-dispatcher-and-handler "/style.css" "./style.css")
       *dispatch-table*)
 
-(defmacro with-http-authentication (&rest body)
-  `(multiple-value-bind (username password) (hunchentoot:authorization)
-     (cond ((and (string= username "nobody") (string= password "password"))
-            ,@body)
-           (t (hunchentoot:require-authorization "amarok-control")))))
+;; (defmacro with-http-authentication (&rest body)
+;;   `(multiple-value-bind (username password) (hunchentoot:authorization)
+;;      (cond ((and (string= username "nobody") (string= password "password"))
+;;             ,@body)
+;;            (t (hunchentoot:require-authorization "amarok-control")))))
 
-(defconstant amarok-controls
+(defconstant amarok-controls-html
   (with-html-output-to-string (*standard-ouptput* nil :indent nil)
     (:table :border 0
             (:tr
@@ -44,13 +44,19 @@
               (:form :action "/execute" :method "get"
                      (:button :type "submit" :name "what" :value "stop" "Stop")))))))
 
-(defconstant serieviewer-controls
+(defconstant serieviewer-controls-html
   (with-html-output-to-string (*standard-output* nil :indent nil)
     (:table :border 0
             (:tr
              (:td
               (:form :action "/execute" :method "get"
-                     (:button :type "submit" :value "playnexts" "Play Next Episode in Series")))))))
+                     (:button :type "submit" :name "what":value "playnexts" "Play Next Episode in Series")))
+             (:td
+              (:form :action "/execute" :method "get"
+                     (:button :type "submit" :name "what" :value "kill" "Quit VLC")))
+             (:td
+              (:form :action "/execute" :method "get"
+                     (:button :type "submit" :name "what" :value "killandnext" "Kill and Play Next")))))))
 
 (define-easy-handler (amarok :uri "/" :default-request-type :GET)
     ((what :parameter-type 'string))
@@ -82,12 +88,12 @@
                          (:td (str title))
                          (:td (str album))))
                 (:h2 "Controls")
-                (str amarok-controls)
+                (str amarok-controls-html)
                 (:p :class "status" "Status: " (str current-action))
 
                 (:h1 "Serieviewer")
                 (:p :class "status" "Status: " (str serieviewer-running))
-                (str serieviewer-controls))))))
+                (str serieviewer-controls-html))))))
 
 ;different forms with different fields could also work
 (defun testpage ()
@@ -125,6 +131,15 @@
      (amarok-previous))
     ((equal what "stop")
      (amarok-stop))
+    ;; serieviewer+vlc
     ((equal what "playnexts")
-     (serieviewer-play)))
+     (serieviewer-play))
+    ((equal what "kill")
+     (serieviewer-vlc-stop))
+    ((equal what "killandnext")
+     (progn
+       (serieviewer-vlc-stop)
+       (sleep 2)
+       (serieviewer-play))))
+  ;; default
   (redirect "/"))

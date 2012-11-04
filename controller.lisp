@@ -12,6 +12,7 @@
 
 (defparameter base-url-serieviewer "org.serieviewer")
 (defparameter base-url-media "org.mpris.clementine")
+(defparameter base-url-vlc "org.mpris.MediaPlayer2.vlc")
 
 ;; environment getting
 (defun env-kded4-pid ()
@@ -54,6 +55,9 @@
 (defun serieviewer-play ()
   (dbus-send "org.serieviewer.playNextInSerie" :dest base-url-serieviewer :path "/Serieviewer" :print-output t))
   
+(defun serieviewer-vlc-stop ()
+  (dbus-send "org.mpris.MediaPlayer2.Quit" :dest base-url-vlc :path "/org/mpris/MediaPlayer2" :print-output t))
+
 (defun serieviewer-get-status ()
   "checks if serieviewer is running"
   (multiple-value-bind (returnvalue error) 
@@ -75,7 +79,7 @@
   (dbus-send "org.freedesktop.MediaPlayer.Pause" :print-output t))
 
 (defun amarok-playpause()
-  (let ((value (get-playstatus (get-status))))
+  (let ((value (amarok-get-playstatus (amarok-get-status))))
     (cond
       ((or (equal value 'PAUSED) (equal value 'PLAYING))
        (amarok-pause))
