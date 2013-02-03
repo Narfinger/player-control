@@ -12,3 +12,5 @@
 
 (hunchentoot:start (make-instance 'hunchentoot:easy-acceptor :port server-port))
 ;(defvar *ht-server* (hunchentoot:start-server :port server-port :address server-address))
+
+(format t "Running server on port ~S~%" server-port)
