@@ -5,6 +5,7 @@ import (
 	"html/template"
 	"fmt"
 	"errors"
+	"time"
 	// "os"
 	// "reflect"
 	// "log"
@@ -17,6 +18,7 @@ type StatusPage struct {
 	Artist string
 	Album string
 	StatusM string
+	TitleS string
 	StatusS string
 }
 
@@ -74,13 +76,55 @@ func getPlayStatus(object *dbus.Object) ([4]int32, error) {
 	return status, nil
 }
 
+func getSeriePlayStatus() (string) {
+	conn, error := dbus.SessionBus()
+	if error != nil {
+		panic(error)
+	}
+ 	object := conn.Object("org.serieviewer", "/Serieviewer")
+	reply := object.Call("org.freedesktop.DBus.Introspectable.Introspect",0)
+	if(reply.Err==nil) {
+		return "Running"
+	} else {
+		return "Not Running"
+	}
+		
+
+	fmt.Println(reply.Err)
+	return "TTT"
+}
+
+func getSerieTitle(serieobject *dbus.Object) (string) {
+	var title string
+	serieobject.Call("org.serieviewer.getCurrentName", 0).Store(&title)
+	return title
+}
+
+func seriePlayNext(serieobject *dbus.Object) {
+	serieobject.Call("org.serieviewer.playNextInSerie", 0)
+}
+
+func serieKill() {
+	conn, error := dbus.SessionBus()
+	if error != nil {
+		panic(error)
+	}
+	object := conn.Object("org.mpris.MediaPlayer2.vlc", "/org/mpris/MediaPlayer2")
+	reply := object.Call("org.mpris.MediaPlayer2.Quit",0)
+}
+
+func serieKillAndNext(serieobject *dbus.Object) {
+	serieKill()
+	time.Sleep(2 * time.Second)
+	seriePlayNext(serieobject)
+}
 // pages
-func getStatus(object *dbus.Object ) *StatusPage {
+func getStatus(musicobject *dbus.Object, serieobject *dbus.Object ) *StatusPage {
 	var songinfo map[string]dbus.Variant
 //	var statusinfo [1][4]dbus.Variant 
-	object.Call("org.freedesktop.MediaPlayer.GetMetadata", 0).Store(&songinfo)
+	musicobject.Call("org.freedesktop.MediaPlayer.GetMetadata", 0).Store(&songinfo)
 
-	data := StatusPage{Title: "", Artist: "", Album: "", StatusM: "", StatusS: ""}
+	data := StatusPage{Title: "", Artist: "", Album: "", StatusM: "", TitleS: "", StatusS: ""}
 	if songinfo != nil {
 		title := songinfo["title"].String()
 		artist := songinfo["artist"].String()
@@ -93,7 +137,7 @@ func getStatus(object *dbus.Object ) *StatusPage {
 		data.StatusS = "seriestatus"
 	}
 
-	status, err := getPlayStatus(object)
+	status, err := getPlayStatus(musicobject)
 	if err == nil {
 		switch status[0] {
 		case 0: data.StatusM = "Playing"
@@ -102,20 +146,26 @@ func getStatus(object *dbus.Object ) *StatusPage {
 		default: data.StatusM = "Error"
 		}
 	}
+
+	// serie
+	data.StatusS = getSeriePlayStatus()
+	data.TitleS = getSerieTitle(serieobject)
 	return &data
 
 }
 
-func executeHandler(w http.ResponseWriter, r *http.Request, object *dbus.Object) {
-
+func executeHandler(w http.ResponseWriter, r *http.Request, musicobject *dbus.Object, serieobject *dbus.Object) {
 	what := r.URL.Query()["what"][0]
 	switch what {
-	case "prev":  go musicPrevious(object)
-	case "next":  go musicNext(object)
-	case "play":  go musicPlay(object)
-	case "pause": go musicPause(object)
-	case "pp":    go musicPlayPause(object)
-	case "stop":  go musicStop(object)
+	case "prev":  go musicPrevious(musicobject)
+	case "next":  go musicNext(musicobject)
+	case "play":  go musicPlay(musicobject)
+	case "pause": go musicPause(musicobject)
+	case "pp":    go musicPlayPause(musicobject)
+	case "stop":  go musicStop(musicobject)
+	case "playnexts": go seriePlayNext(serieobject)
+	case "kill": go serieKill()
+	case "killandnext": go serieKillAndNext(serieobject)
 	}
 
 
@@ -123,13 +173,13 @@ func executeHandler(w http.ResponseWriter, r *http.Request, object *dbus.Object)
 	return
 }
 
-func indexHandler(w http.ResponseWriter, r *http.Request, object *dbus.Object) {
+func indexHandler(w http.ResponseWriter, r *http.Request, musicobject *dbus.Object, serieobject *dbus.Object) {
 	if r.URL.Path != "/" {
 		http.NotFound(w,r)
 		return
 	}
 	t, _ := template.ParseFiles("amarok.html")
-	data := getStatus(object)
+	data := getStatus(musicobject, serieobject)
 
 	t.Execute(w,data)
 
@@ -142,13 +192,14 @@ func main() {
 		panic(error)
 	}
 
-	object := conn.Object("org.mpris.clementine", "/Player")
+	musicobject := conn.Object("org.mpris.clementine", "/Player")
+	serieobject := conn.Object("org.serieviewer", "/Serieviewer")
 	http.HandleFunc("/execute", func (w http.ResponseWriter, r *http.Request) {
-		executeHandler(w,r,object)})
+		executeHandler(w,r, musicobject, serieobject)})
 	http.HandleFunc("/style.css", func(w http.ResponseWriter, r *http.Request) {
 		http.ServeFile(w,r, "style.css")})
 	http.HandleFunc("/", func( w http.ResponseWriter, r *http.Request) {
-		indexHandler(w,r,object)})
+		indexHandler(w,r, musicobject, serieobject)})
 	
 
 	fmt.Println("Starting on port 8082")
