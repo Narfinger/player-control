@@ -17,10 +17,13 @@ type StatusPage struct {
 	Title string
 	Artist string
 	Album string
+	Arturl string
 	StatusM string
 	TitleS string
 	StatusS string
 }
+
+var data StatusPage
 
 // controller
 func musicPrevious(object *dbus.Object) {
@@ -110,7 +113,7 @@ func serieKill() {
 		panic(error)
 	}
 	object := conn.Object("org.mpris.MediaPlayer2.vlc", "/org/mpris/MediaPlayer2")
-	reply := object.Call("org.mpris.MediaPlayer2.Quit",0)
+	object.Call("org.mpris.MediaPlayer2.Quit",0)
 }
 
 func serieKillAndNext(serieobject *dbus.Object) {
@@ -123,16 +126,18 @@ func getStatus(musicobject *dbus.Object, serieobject *dbus.Object ) *StatusPage 
 	var songinfo map[string]dbus.Variant
 //	var statusinfo [1][4]dbus.Variant 
 	musicobject.Call("org.freedesktop.MediaPlayer.GetMetadata", 0).Store(&songinfo)
-
-	data := StatusPage{Title: "", Artist: "", Album: "", StatusM: "", TitleS: "", StatusS: ""}
+	
+	data = StatusPage{Title: "", Artist: "", Album: "", StatusM: "", TitleS: "", StatusS: ""}
 	if songinfo != nil {
 		title := songinfo["title"].String()
 		artist := songinfo["artist"].String()
 		album := songinfo["album"].String()
-		
+		arturl := songinfo["arturl"].String()[8:]
+
 		data.Title = title
 		data.Artist = artist
 		data.Album = album
+		data.Arturl = arturl[:len(arturl)-1]
 		data.StatusM = "tmpstatus"
 		data.StatusS = "seriestatus"
 	}
@@ -173,6 +178,11 @@ func executeHandler(w http.ResponseWriter, r *http.Request, musicobject *dbus.Ob
 	return
 }
 
+func coverHandler(w http.ResponseWriter, r *http.Request) {
+	http.ServeFile(w,r, data.Arturl)
+	return
+}
+
 func indexHandler(w http.ResponseWriter, r *http.Request, musicobject *dbus.Object, serieobject *dbus.Object) {
 	if r.URL.Path != "/" {
 		http.NotFound(w,r)
@@ -198,6 +208,7 @@ func main() {
 		executeHandler(w,r, musicobject, serieobject)})
 	http.HandleFunc("/style.css", func(w http.ResponseWriter, r *http.Request) {
 		http.ServeFile(w,r, "style.css")})
+	http.HandleFunc("/cover", coverHandler)
 	http.HandleFunc("/", func( w http.ResponseWriter, r *http.Request) {
 		indexHandler(w,r, musicobject, serieobject)})
 	
