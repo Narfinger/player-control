@@ -6,9 +6,7 @@ import (
 	"fmt"
 	"errors"
 	"time"
-	// "os"
-	// "reflect"
-	// "log"
+//	"strconv"
 )
 
 import dbus "github.com/guelfey/go.dbus"
@@ -21,9 +19,11 @@ type StatusPage struct {
 	StatusM string
 	TitleS string
 	StatusS string
+	SerieList []string
 }
 
 var data StatusPage
+var serieList []string
 
 // controller
 func musicPrevious(object *dbus.Object) {
@@ -72,7 +72,7 @@ func getPlayStatus(object *dbus.Object) ([4]int32, error) {
 	if reply == nil {
 		return status, errors.New("No Status")
 	}
-
+	
 	for key, _ := range status {
 		status[key] = reply.Body[0].([]interface{})[key].(int32)
 	}
@@ -121,6 +121,11 @@ func serieKillAndNext(serieobject *dbus.Object) {
 	time.Sleep(2 * time.Second)
 	seriePlayNext(serieobject)
 }
+
+func populateSerieNameList(serieobject *dbus.Object) {
+	serieobject.Call("org.serieviewer.getSerieNameList", 0).Store(&serieList)
+}
+
 // pages
 func getStatus(musicobject *dbus.Object, serieobject *dbus.Object ) *StatusPage {
 	var songinfo map[string]dbus.Variant
@@ -155,6 +160,7 @@ func getStatus(musicobject *dbus.Object, serieobject *dbus.Object ) *StatusPage 
 	// serie
 	data.StatusS = getSeriePlayStatus()
 	data.TitleS = getSerieTitle(serieobject)
+	data.SerieList = serieList 
 	return &data
 
 }
@@ -178,6 +184,16 @@ func executeHandler(w http.ResponseWriter, r *http.Request, musicobject *dbus.Ob
 	return
 }
 
+func playHandler(w http.ResponseWriter, r *http.Request, serieobject *dbus.Object) {
+	// index, _ := strconv.Atoi(r.URL.Query()["what"][0])
+	
+	// fmt.Println(index)
+	// reply := serieobject.Call("org.serieviewer.playIndex", 0, index)
+	// fmt.Println(reply)
+	http.Redirect(w, r, "/", http.StatusFound)
+	return
+}
+
 func coverHandler(w http.ResponseWriter, r *http.Request) {
 	http.ServeFile(w,r, data.Arturl)
 	return
@@ -192,7 +208,6 @@ func indexHandler(w http.ResponseWriter, r *http.Request, musicobject *dbus.Obje
 	data := getStatus(musicobject, serieobject)
 
 	t.Execute(w,data)
-
 }
 
 // dbus has signals, i should connect and do stuff with it instead of query everytime!!!
@@ -206,13 +221,17 @@ func main() {
 	serieobject := conn.Object("org.serieviewer", "/Serieviewer")
 	http.HandleFunc("/execute", func (w http.ResponseWriter, r *http.Request) {
 		executeHandler(w,r, musicobject, serieobject)})
+	http.HandleFunc("/play", func (w http.ResponseWriter, r *http.Request) {
+		playHandler(w,r, serieobject)})
 	http.HandleFunc("/style.css", func(w http.ResponseWriter, r *http.Request) {
 		http.ServeFile(w,r, "style.css")})
 	http.HandleFunc("/cover", coverHandler)
 	http.HandleFunc("/", func( w http.ResponseWriter, r *http.Request) {
 		indexHandler(w,r, musicobject, serieobject)})
 	
+	
 
+	go populateSerieNameList(serieobject)
 	fmt.Println("Starting on port 8082")
 	http.ListenAndServe(":8082", nil)
 	fmt.Println("Stopping")

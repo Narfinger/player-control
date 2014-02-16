@@ -54,6 +54,20 @@ INPUT {
         border-bottom-width: 2px;
     /* background-color: #F7F7F7; */
     }
+
+
+    .wrapperdiv {
+        width: 100%;
+        overflow: hidden;
+    }
+    .musicdiv {
+        width: 500px;
+        float:left;
+    }
+    .seriediv {
+        float: left;
+        padding-left: 10px;
+    }
 }
 
 @media only screen and (max-device-width: 480px)
