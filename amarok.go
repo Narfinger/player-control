@@ -74,7 +74,7 @@ func getPlayStatus(object *dbus.Object) ([4]int32, error) {
 	}
 	
 	for key, _ := range status {
-		status[key] = reply.Body[0].([]interface{})[key].(int32)
+		reply.Store(status[key])
 	}
 	return status, nil
 }
