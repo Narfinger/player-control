@@ -17,8 +17,9 @@
 ;; environment getting
 (defun env-kded4-pid ()
   (let ((stream (make-string-output-stream)))
-      (sb-ext:run-program "/bin/pidof" '("kded4") :wait t :output stream)
-      (string-trim '(#\Newline) (get-output-stream-string stream))))
+      (sb-ext:run-program "/bin/pidof" '("kdeinit4") :wait t :output stream)
+      (car (split-sequence:SPLIT-SEQUENCE #\Space 
+	(string-trim '(#\Newline) (get-output-stream-string stream))))))
 
 (defun env-dbus-address ()
   (with-open-file (stream (concatenate 'string "/proc/" (env-kded4-pid) "/environ"))
