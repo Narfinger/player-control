@@ -1,0 +1,8 @@
+[package]
+
+name = "amarok-rust-control"
+version = "0.0.1"
+authors = ["Narfinger <Narfinger@users.noreply.github.com>"]
+
+[dependencies.nickel]
+git = "https://github.com/nickel-org/nickel.rs.git"

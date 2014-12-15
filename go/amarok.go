@@ -74,6 +74,8 @@ func getPlayStatus(object *dbus.Object) ([4]int32, error) {
 	}
 	
 	for key, _ := range status {
+		fmt.Println(status)
+		fmt.Println(reply)
 		reply.Store(status[key])
 	}
 	return status, nil
@@ -217,7 +219,7 @@ func main() {
 		panic(error)
 	}
 
-	musicobject := conn.Object("org.mpris.clementine", "/Player")
+	musicobject := conn.Object("org.mpris.MediaPlayer2.clementine", "/Player")
 	serieobject := conn.Object("org.serieviewer", "/Serieviewer")
 	http.HandleFunc("/execute", func (w http.ResponseWriter, r *http.Request) {
 		executeHandler(w,r, musicobject, serieobject)})
