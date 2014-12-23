@@ -20,27 +20,28 @@ data StatusInfo = StatusInfo { statusm :: String
                              } deriving (Show)
 
 
-
-callPlayer :: Client -> String -> IO MethodReturn
-callPlayer client method =
-  call_ client (methodCall "/Player" "org.freedesktop.MediaPlayer" (memberName_ method))
+callMedia :: Client -> String -> String -> IO (Either MethodError MethodReturn)
+callMedia client path method =
+   call client (methodCall (objectPath_ path) "org.freedesktop.MediaPlayer" (memberName_ method))
         { methodCallDestination = Just "org.mpris.clementine"
         }
-
-
-
--- foo :: IO ()
--- foo = do {
---   -- this way the monad/io stuff contradicts with currying
---   client <- connectSession;
-
   
---   fun <- callPlayer client;
---   fun "Pause";
---   }
+callPlayer :: Client -> String -> IO (Either MethodError MethodReturn)
+callPlayer client method = callMedia client "/Player" method
 
-getSongInfo :: SongInfo
-getSongInfo = SongInfo { title = "t", artist = "T", album = "j" }
+callTrack :: Client -> String -> IO (Either MethodError MethodReturn)
+callTrack client method = callMedia client "/TrackList" method
 
-getStatusInfo :: StatusInfo
-getStatusInfo = StatusInfo { statusm = "playingtest", statuss = "playingtess" }
+getSongInfo :: Client -> IO SongInfo
+getSongInfo client = do {
+  method <- callTrack client "GetCurrentTrack";
+
+  return SongInfo {title = "Testtitle", artist = "testartist", album = "testalbum"}
+  }
+
+getStatusInfo :: Client -> IO StatusInfo
+getStatusInfo client = do {
+  method <- callPlayer client "GetStatus";
+
+  return StatusInfo { statuss = "tmp", statusm = "tmp" }
+  }

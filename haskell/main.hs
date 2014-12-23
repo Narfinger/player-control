@@ -55,7 +55,7 @@ buttonTemplate button =
     H.button ! A.type_ "submit" ! A.name "what" ! A.value v $ do
       H.toHtml name
 
-indexTemplate :: SongInfo -> StatusInfo -> H.Html
+indexTemplate :: IO SongInfo -> IO StatusInfo -> H.Html
 indexTemplate song serie =
   let buttonlist = map (\x -> buttonTemplate x) musicbuttons in
   H.div ! A.class_ "wrapperdiv" $ do
