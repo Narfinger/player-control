@@ -17,13 +17,8 @@ import Text.Blaze ((!))
 import qualified Text.Blaze.Html5 as H
 import qualified Text.Blaze.Html5.Attributes as A
 
-data SongInfo = SongInfo { title :: String
-                         , artist :: String
-                         , album :: String
-                         } deriving (Show)
-data StatusInfo = StatusInfo { statusm :: String
-                             , statuss :: String
-                             } deriving (Show)
+import DBusController (StatusInfo(..), SongInfo(..), getStatusInfo, getSongInfo)
+
 
 data Button = Button { keyword :: String
                        , displayname :: String
@@ -31,8 +26,6 @@ data Button = Button { keyword :: String
                        } deriving (Show)
 type Buttons = [Button]
 
-tmpinfo = SongInfo { title = "t", artist = "T", album = "j" }
-tmpstatus = StatusInfo { statusm = "playingtest", statuss = "playingtess" }
 musicbuttons = [Button { keyword = "prev", displayname = "Previous" }
                ,Button { keyword = "next", displayname = "Next"}
                ,Button { keyword = "play", displayname = "Play"}
@@ -79,9 +72,6 @@ indexTemplate song serie =
          H.table  $ do 
            H.tr $ forM_ buttonlist (H.td)
 
-             
-  
-
 appTemplate :: String -> H.Html -> H.Html
 appTemplate title body =
     H.html $ do
@@ -95,7 +85,9 @@ appTemplate title body =
 indexPage :: ServerPart Response
 indexPage =
   ok $ toResponse $
-  bodyTemplate $ (indexTemplate tmpinfo  tmpstatus)
+  let status = getStatusInfo in
+  let song = getSongInfo in
+  bodyTemplate $ (indexTemplate song status)
 
 executePage :: ServerPart Response
 executePage =
