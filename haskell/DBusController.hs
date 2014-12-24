@@ -20,16 +20,17 @@ data StatusInfo = StatusInfo { statusm :: String
                              } deriving (Show)
 
 
-callMedia :: Client -> String -> String -> IO (Either MethodError MethodReturn)
+
+callMedia :: Client -> String -> String -> IO MethodReturn
 callMedia client path method =
-   call client (methodCall (objectPath_ path) "org.freedesktop.MediaPlayer" (memberName_ method))
+   call_ client (methodCall (objectPath_ path) "org.freedesktop.MediaPlayer" (memberName_ method))
         { methodCallDestination = Just "org.mpris.clementine"
         }
   
-callPlayer :: Client -> String -> IO (Either MethodError MethodReturn)
+callPlayer :: Client -> String -> IO MethodReturn
 callPlayer client method = callMedia client "/Player" method
 
-callTrack :: Client -> String -> IO (Either MethodError MethodReturn)
+callTrack :: Client -> String -> IO MethodReturn
 callTrack client method = callMedia client "/TrackList" method
 
 getSongInfo :: Client -> IO SongInfo

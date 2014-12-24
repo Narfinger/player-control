@@ -3,6 +3,7 @@
 module Main where
 import Control.Applicative ((<$>), optional)
 import Control.Monad (msum, forM_)
+import Control.Monad.Trans  (liftIO)
 import Data.Maybe (fromMaybe)
 import Data.Typeable
 import Data.Data
@@ -18,7 +19,7 @@ import qualified Text.Blaze.Html5 as H
 import qualified Text.Blaze.Html5.Attributes as A
 
 import DBusController (StatusInfo(..), SongInfo(..), getStatusInfo, getSongInfo)
-
+import DBus.Client (connectSession, Client)
 
 data Button = Button { keyword :: String
                        , displayname :: String
@@ -55,7 +56,7 @@ buttonTemplate button =
     H.button ! A.type_ "submit" ! A.name "what" ! A.value v $ do
       H.toHtml name
 
-indexTemplate :: IO SongInfo -> IO StatusInfo -> H.Html
+indexTemplate :: SongInfo -> StatusInfo -> H.Html
 indexTemplate song serie =
   let buttonlist = map (\x -> buttonTemplate x) musicbuttons in
   H.div ! A.class_ "wrapperdiv" $ do
@@ -82,20 +83,20 @@ appTemplate title body =
       H.body $ do
         body
 
-indexPage :: ServerPart Response
-indexPage =
-  ok $ toResponse $
-  let status = getStatusInfo in
-  let song = getSongInfo in
-  bodyTemplate $ (indexTemplate song status)
-
-executePage :: ServerPart Response
+indexPage :: IO Client -> ServerPart Response
+indexPage client = do
+  status <- liftIO $ getStatusInfo client;
+  song <- liftIO $ getSongInfo client;
+  ok $ toResponse $ bodyTemplate $ (indexTemplate song status)
+  
+-- executePage :: ServerPart Response
 executePage =
   ok $ toResponse $ bodyTemplate "blubb"
 
 main :: IO ()
-main = simpleHTTP nullConf $ msum
+main =  let client = DBus.Client.connectSession in
+  simpleHTTP nullConf $ msum
        [ dir "style.css" $ serveFile (asContentType "text/css") "../style.css"
        , dir "execute" $ executePage
-       , indexPage
+       , indexPage client 
        ]
