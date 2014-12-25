@@ -3,7 +3,7 @@
 module Main where
 import Control.Applicative ((<$>), optional)
 import Control.Monad (msum, forM_)
-import Control.Monad.Trans  (liftIO)
+import Control.Monad.Trans  (liftIO, lift)
 import Data.Maybe (fromMaybe)
 import Data.Typeable
 import Data.Data
@@ -83,20 +83,24 @@ appTemplate title body =
       H.body $ do
         body
 
-indexPage :: IO Client -> ServerPart Response
-indexPage client = do
+indexPage :: Client -> ServerPart Response
+indexPage client = do {
   status <- liftIO $ getStatusInfo client;
   song <- liftIO $ getSongInfo client;
   ok $ toResponse $ bodyTemplate $ (indexTemplate song status)
+  }
   
--- executePage :: ServerPart Response
-executePage =
+executePage :: Client -> ServerPart Response
+executePage client = do {
   ok $ toResponse $ bodyTemplate "blubb"
+  }
 
 main :: IO ()
-main =  let client = DBus.Client.connectSession in
+main = do {
+  client <- DBus.Client.connectSession;
   simpleHTTP nullConf $ msum
        [ dir "style.css" $ serveFile (asContentType "text/css") "../style.css"
-       , dir "execute" $ executePage
-       , indexPage client 
+       , dir "execute" $ executePage client
+       , indexPage client
        ]
+  }
