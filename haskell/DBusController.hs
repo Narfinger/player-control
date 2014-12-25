@@ -1,9 +1,13 @@
 {-# LANGUAGE OverloadedStrings #-}
 module DBusController ( SongInfo(..)
                       , StatusInfo(..)
+                      , getSongInfo
+                      , getStatusInfo
                       ) where
 
 import Data.Int
+import Data.Map
+import Data.Maybe
 import DBus
 import DBus.Client
 import Control.Monad (forever,liftM)
@@ -36,21 +40,23 @@ callTrack client method = callMedia client "/TrackList" method
 getTrackInfo :: Client -> Int32 -> IO MethodReturn
 getTrackInfo client id =
   let o = objectPath_ "/TrackList" in
-  let m = memberName_ "org.freedesktop.MediaPlayer" in
+  let m = memberName_ "GetMetadata" in
   call_ client (methodCall o "org.freedesktop.MediaPlayer" m)
   { methodCallDestination = Just "org.mpris.clementine",
     methodCallBody = [toVariant id]
   }
 
-extractTrackID :: (IsVariant a) => MethodReturn -> Maybe a
-extractTrackID method = fromVariant (methodReturnBody method !! 0)
+extractTrackID :: MethodReturn -> Maybe Int32
+extractTrackID method = fromVariant $ head $ methodReturnBody method
   
 extractTrackInfo :: MethodReturn -> SongInfo
 extractTrackInfo method =
-  let body = fromVariant $ head $ methodReturnBody method in
-  case body of
-    Nothing -> SongInfo { title = "No Title", artist = "No Artist", album = "No Album" }
-    Just e ->  SongInfo { title = e, artist = "t", album = "t" } 
+  let Just body = fromVariant (methodReturnBody method !! 0) in
+  SongInfo { title = show body, artist = "-", album = "t" }
+  -- case body of
+  --   Nothing -> SongInfo { title = "-", artist = "-", album = "-" }
+  --   Just map ->
+  --     SongInfo { title = show body, artist = show $ size map, album = "t" } 
 
 
 getSongInfo :: Client -> IO SongInfo
@@ -59,7 +65,10 @@ getSongInfo client = do
   Just id <- (fmap extractTrackID) methodreturn;
   tinfo <- getTrackInfo client id;
   return (extractTrackInfo tinfo)
- 
+
+getStatusInfo :: Client -> IO StatusInfo
+getStatusInfo client = do
+  return StatusInfo { statusm = "tmp", statuss = "tmp" }
   
   -- trackreturn <- callTrack client "GetCurrentTrack";
   -- id <- lift currentTrackID trackreturn;

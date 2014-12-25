@@ -18,7 +18,7 @@ import Text.Blaze ((!))
 import qualified Text.Blaze.Html5 as H
 import qualified Text.Blaze.Html5.Attributes as A
 
-import DBusController (StatusInfo(..), SongInfo(..), getStatusInfo, getSongInfo)
+import DBusController (StatusInfo(..), SongInfo(..), getSongInfo, getStatusInfo)
 import DBus.Client (connectSession, Client)
 
 data Button = Button { keyword :: String
