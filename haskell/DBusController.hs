@@ -15,12 +15,15 @@ import Control.Monad.Trans  (lift, liftIO)
 import Control.Concurrent (threadDelay)
 
 
+data PlayStatus = Playing | Stopped | Paused | InvalidM deriving (Show)
+data SerieviewerStatus = Running | NotRunning | InvalidS deriving (Show)
+
 data SongInfo = SongInfo { title :: String
                          , artist :: String
                          , album :: String
                          } deriving (Show)
-data StatusInfo = StatusInfo { statusm :: String
-                             , statuss :: String
+data StatusInfo = StatusInfo { statuss :: PlayStatus
+                             , statusm :: SerieviewerStatus
                              } deriving (Show)
 
 
@@ -46,6 +49,12 @@ getTrackInfo client id =
     methodCallBody = [toVariant id]
   }
 
+createPlayStatus :: Int -> PlayStatus
+createPlayStatus 0 = Playing
+createPlayStatus 1 = Paused
+createPlayStatus 2 = Stopped
+createPlayStatus _ = InvalidM
+
 extractTrackID :: MethodReturn -> Maybe Int32
 extractTrackID method = fromVariant $ head $ methodReturnBody method
   
@@ -62,7 +71,7 @@ extractTrackInfo method =
 getSongInfo :: Client -> IO SongInfo
 getSongInfo client = do
   let methodreturn = callTrack client "GetCurrentTrack"
-  Just id <- (fmap extractTrackID) methodreturn;
+  Just id <- fmap extractTrackID methodreturn;
   tinfo <- getTrackInfo client id;
   return (extractTrackInfo tinfo)
 
