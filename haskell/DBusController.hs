@@ -6,13 +6,16 @@ module DBusController ( SongInfo(..)
                       ) where
 
 import Data.Int
-import Data.Map
+import qualified Data.Map as M 
 import Data.Maybe
+import Data.String
 import DBus
 import DBus.Client
 import Control.Monad (forever,liftM)
 import Control.Monad.Trans  (lift, liftIO)
 import Control.Concurrent (threadDelay)
+import Debug.Trace (trace)
+
 
 
 data PlayStatus = Playing | Stopped | Paused | InvalidM deriving (Show)
@@ -55,19 +58,31 @@ createPlayStatus 1 = Paused
 createPlayStatus 2 = Stopped
 createPlayStatus _ = InvalidM
 
+fromMaybeVariant :: (IsVariant a) => a -> Variant -> a
+fromMaybeVariant def v =
+    let defv = toVariant def in 
+    fromMaybe def $ fromVariant v
+                     
+lookupDictionary :: (IsVariant a) => String -> a -> [(Variant, Variant)] -> a
+lookupDictionary key def dict =
+    let k = toVariant key
+        defv = toVariant ("-" ::String)
+        v = fromMaybe defv $ lookup k dict in
+    fromMaybeVariant def $ fromMaybeVariant defv v
+                         
 extractTrackID :: MethodReturn -> Maybe Int32
 extractTrackID method = fromVariant $ head $ methodReturnBody method
-  
+
 extractTrackInfo :: MethodReturn -> SongInfo
 extractTrackInfo method =
-  let Just body = fromVariant (methodReturnBody method !! 0) in
-  SongInfo { title = show body, artist = "-", album = "t" }
-  -- case body of
-  --   Nothing -> SongInfo { title = "-", artist = "-", album = "-" }
-  --   Just map ->
-  --     SongInfo { title = show body, artist = show $ size map, album = "t" } 
-
-
+  let v =  head $ methodReturnBody method  in 
+  let Just body =  fromVariant v :: Maybe Dictionary
+      dict = dictionaryItems body 
+      title' = lookupDictionary "title" "-" dict 
+      artist' = lookupDictionary "artist" "-" dict
+      album' = lookupDictionary "album" "-" dict in
+  SongInfo { title = title', artist = artist', album = album' }
+  
 getSongInfo :: Client -> IO SongInfo
 getSongInfo client = do
   let methodreturn = callTrack client "GetCurrentTrack"
@@ -77,7 +92,7 @@ getSongInfo client = do
 
 getStatusInfo :: Client -> IO StatusInfo
 getStatusInfo client = do
-  return StatusInfo { statusm = "tmp", statuss = "tmp" }
+  return StatusInfo { statusm = InvalidS, statuss = InvalidM }
   
   -- trackreturn <- callTrack client "GetCurrentTrack";
   -- id <- lift currentTrackID trackreturn;

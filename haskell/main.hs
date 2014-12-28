@@ -10,8 +10,8 @@ import Data.Data
 import Data.ByteString.Lazy (ByteString)
 import Data.Text (Text)
 import Data.Text.Lazy (unpack)
-import Happstack.Server (asContentType, nullConf, serveFile, simpleHTTP
-                        , ServerPart, toResponse, ok, Response, dir, seeOther)
+import Happstack.Server (asContentType, nullConf, serveFile, simpleHTTP, simpleHTTPWithSocket
+                        , ServerPart, toResponse, ok, Response, dir, seeOther, bindIPv4, port)
 import Text.StringTemplate
 import Text.StringTemplate.GenericStandard
 import Text.Blaze ((!))
@@ -68,8 +68,8 @@ indexTemplate song serie =
              H.th $ do "Album"
            H.tr $ do
              H.td $ do H.toHtml $ title $ song
-             H.td $ do H.toHtml $ title $ song
-             H.td $ do H.toHtml $ title $ song
+             H.td $ do H.toHtml $ artist $ song
+             H.td $ do H.toHtml $ album $ song
          H.table  $ do 
            H.tr $ forM_ buttonlist (H.td)
 
@@ -96,11 +96,13 @@ executePage client = do {
   }
 
 main :: IO ()
-main = do {
-  client <- DBus.Client.connectSession;
-  simpleHTTP nullConf $ msum
+main = do
+  let conf = nullConf
+      addr = "127.0.0.1"
+  s <- bindIPv4 addr (port conf); 
+  client <- DBus.Client.connectSession;    
+  simpleHTTPWithSocket s conf $ msum
        [ dir "style.css" $ serveFile (asContentType "text/css") "../style.css"
        , dir "execute" $ executePage client
        , indexPage client
        ]
-  }
