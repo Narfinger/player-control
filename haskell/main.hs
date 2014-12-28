@@ -27,14 +27,16 @@ data Button = Button { keyword :: String
                        } deriving (Show)
 type Buttons = [Button]
 
-musicbuttons = [Button { keyword = "prev", displayname = "Previous" }
-               ,Button { keyword = "next", displayname = "Next"}
-               ,Button { keyword = "play", displayname = "Play"}
-               ,Button { keyword = "pause", displayname = "Pause"}
-               ,Button { keyword = "pp", displayname = "PlayPause"}
-               ,Button { keyword = "stop", displayname = "Stop"}
+musicbuttons = [Button { keyword = "m_prev", displayname = "Previous" }
+               ,Button { keyword = "m_next", displayname = "Next"}
+               ,Button { keyword = "m_play", displayname = "Play"}
+               ,Button { keyword = "m_pause", displayname = "Pause"}
+               ,Button { keyword = "m_pp", displayname = "PlayPause"}
+               ,Button { keyword = "m_stop", displayname = "Stop"}
                ]
-
+seriebuttons = [Button { keyword = "s_stop", displayname = "Stop"}
+               ,Button { keyword = "s_kill", displayname = "Kill"}
+               ]
 
 bodyTemplate :: H.Html ->H.Html
 bodyTemplate body =
@@ -57,22 +59,36 @@ buttonTemplate button =
       H.toHtml name
 
 indexTemplate :: SongInfo -> StatusInfo -> H.Html
-indexTemplate song serie =
-  let buttonlist = map (\x -> buttonTemplate x) musicbuttons in
+indexTemplate song statusinfo =
+  let buttonlistMusic = map (\x -> buttonTemplate x) musicbuttons
+      buttonlistSerie = map (\x -> buttonTemplate x) seriebuttons in
   H.div ! A.class_ "wrapperdiv" $ do
     H.div ! A.class_ "musicdiv" $ do
-         H.table ! A.class_ "music" $ do
-           H.tr $ do
-             H.th $ do "Artist"
-             H.th $ do "Title"
-             H.th $ do "Album"
-           H.tr $ do
-             H.td $ do H.toHtml $ title $ song
-             H.td $ do H.toHtml $ artist $ song
-             H.td $ do H.toHtml $ album $ song
-         H.table  $ do 
-           H.tr $ forM_ buttonlist (H.td)
+       H.h2 $ do "Music"
+       H.table ! A.class_ "music" $ do
+         H.tr $ do
+           H.th $ do "Artist"
+           H.th $ do "Title"
+           H.th $ do "Album"
+         H.tr $ do
+           H.td $ do H.toHtml $ title $ song
+           H.td $ do H.toHtml $ artist $ song
+           H.td $ do H.toHtml $ album $ song
+       H.table  $ do 
+         H.tr $ forM_ buttonlistMusic (H.td)
+       H.img ! A.src "/cover" ! A.width "300px" ! A.height "300px"
+       H.p ! A.class_ "status" $ do H.toHtml $ "Status: " ++ (show $ statusmusic statusinfo)
+    H.div ! A.class_ "seriediv" $ do
+      H.h2 $ do "Serieviewer"
+      H.p ! A.class_ "status" $ do  H.toHtml $ "Status: " ++ (show $ statusserie statusinfo)
+      H.table $ do
+           H.tr $ forM_ buttonlistSerie (H.td)
+      H.h2 $ do "Names of Episodes or series or something?"
+                                
+                                   
+                                     
 
+                                       
 appTemplate :: String -> H.Html -> H.Html
 appTemplate title body =
     H.html $ do

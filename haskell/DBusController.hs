@@ -18,18 +18,16 @@ import Debug.Trace (trace)
 
 
 
-data PlayStatus = Playing | Stopped | Paused | InvalidM deriving (Show)
-data SerieviewerStatus = Running | NotRunning | InvalidS deriving (Show)
+data PlayStatus = Playing | Stopped | Paused  deriving (Show)
+data SerieviewerStatus = Running | NotRunning deriving (Show)
 
 data SongInfo = SongInfo { title :: String
                          , artist :: String
                          , album :: String
                          } deriving (Show)
-data StatusInfo = StatusInfo { statuss :: PlayStatus
-                             , statusm :: SerieviewerStatus
+data StatusInfo = StatusInfo { statusmusic :: Maybe PlayStatus
+                             , statusserie :: Maybe SerieviewerStatus
                              } deriving (Show)
-
-
 
 callMedia :: Client -> String -> String -> IO MethodReturn
 callMedia client path method =
@@ -56,7 +54,6 @@ createPlayStatus :: Int -> PlayStatus
 createPlayStatus 0 = Playing
 createPlayStatus 1 = Paused
 createPlayStatus 2 = Stopped
-createPlayStatus _ = InvalidM
 
 fromMaybeVariant :: (IsVariant a) => a -> Variant -> a
 fromMaybeVariant def v =
@@ -78,9 +75,9 @@ extractTrackInfo method =
   let v =  head $ methodReturnBody method  in 
   let Just body =  fromVariant v :: Maybe Dictionary
       dict = dictionaryItems body 
-      title' = lookupDictionary "title" "-" dict 
+      title'  = lookupDictionary "title"  "-" dict 
       artist' = lookupDictionary "artist" "-" dict
-      album' = lookupDictionary "album" "-" dict in
+      album'  = lookupDictionary "album"  "-" dict in
   SongInfo { title = title', artist = artist', album = album' }
   
 getSongInfo :: Client -> IO SongInfo
@@ -90,28 +87,10 @@ getSongInfo client = do
   tinfo <- getTrackInfo client id;
   return (extractTrackInfo tinfo)
 
+-- getMusicStatusInfo :: Client -> IO PlayStatus
+-- getMusicStatusInfo client = do
+  
+
 getStatusInfo :: Client -> IO StatusInfo
 getStatusInfo client = do
-  return StatusInfo { statusm = InvalidS, statuss = InvalidM }
-  
-  -- trackreturn <- callTrack client "GetCurrentTrack";
-  -- id <- lift currentTrackID trackreturn;
-  -- lift currentTrackInfo id;
-  
-  
-
--- getStatusInfo :: Client -> IO StatusInfo
--- getStatusInfo client = do {
---   method <- callPlayer client "GetStatus";
-
---   return StatusInfo { statuss = "tmp", statusm = "tmp" }
---   }
-
-
--- do functions and try to lift them?
--- if i have something that is pure and i want to use it for monad types i can use lift
---( $ )    ::                                     (a ->   b) ->   a ->      b
---(<$>)    ::  Functor     f                 =>   (a ->   b) -> f a -> f    b
---(<*>)    ::  Applicative f                 => f (a ->   b) -> f a -> f    b
---(=<<)    ::  Monad       m                 =>   (a -> m b) -> m a -> m    b
---traverse :: (Applicative f, Traversable t) =>   (a -> f b) -> t a -> f (t b)
+  return StatusInfo { statusserie = Nothing, statusmusic = Nothing }
