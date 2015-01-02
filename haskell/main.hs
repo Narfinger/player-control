@@ -18,7 +18,7 @@ import Text.Blaze ((!))
 import qualified Text.Blaze.Html5 as H
 import qualified Text.Blaze.Html5.Attributes as A
 
-import DBusController (StatusInfo(..), SongInfo(..), getSongInfo, getStatusInfo)
+import DBusController (StatusInfo(..), SongInfo(..), statusMusicMaybe, getSongInfo, getStatusInfo)
 import DBus.Client (connectSession, Client)
 
 data Button = Button { keyword :: String
@@ -77,7 +77,7 @@ indexTemplate song statusinfo =
        H.table  $ do 
          H.tr $ forM_ buttonlistMusic (H.td)
        H.img ! A.src "/cover" ! A.width "300px" ! A.height "300px"
-       H.p ! A.class_ "status" $ do H.toHtml $ "Status: " ++ (show $ statusmusic statusinfo)
+       H.p ! A.class_ "status" $ do H.toHtml $ "Status: " ++ (show $ statusMusicMaybe statusinfo)
     H.div ! A.class_ "seriediv" $ do
       H.h2 $ do "Serieviewer"
       H.p ! A.class_ "status" $ do  H.toHtml $ "Status: " ++ (show $ statusserie statusinfo)
@@ -107,7 +107,7 @@ indexPage client = do {
   }
   
 executePage :: Client -> ServerPart Response
-executePage client = do {
+executePage client = do {                       
   ok $ toResponse $ bodyTemplate "blubb"
   }
 

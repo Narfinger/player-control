@@ -1,6 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 module DBusController ( SongInfo(..)
                       , StatusInfo(..)
+                      , statusMusicMaybe
                       , getSongInfo
                       , getStatusInfo
                       ) where
@@ -19,12 +20,14 @@ data SerieviewerStatus = Running | NotRunning deriving (Show)
 data SongInfo = SongInfo { title :: String
                          , artist :: String
                          , album :: String
-                         } deriving (Show)
+                         } deriving (Show) 
+
 data StatusInfo = StatusInfo { statusmusic :: Maybe MusicStatus
                              , statusserie :: Maybe SerieviewerStatus
                              } deriving (Show)
 
---implement access for StatusInfo of MusicStatus and SerieviewerStatus because they are both maybe types
+statusMusicMaybe :: StatusInfo -> MusicStatus
+statusMusicMaybe x = fromMaybe Stopped $ statusmusic x 
 
 callMedia :: Client -> String -> String -> IO MethodReturn
 callMedia client path method =
@@ -100,3 +103,29 @@ getStatusInfo client = do
   let methodreturn = callPlayer client "GetStatus"
   statusm' <- fmap extractPlayStatusInfo methodreturn;
   return StatusInfo { statusserie = Nothing, statusmusic = statusm'}
+
+
+-- controlling calls
+playerStop :: Client -> IO ()
+playerStop client = do callPlayer client "Stop"; return ();
+
+playerPlay :: Client -> IO ()
+playerPlay client = do callPlayer client "Play"; return ();
+
+playerPause :: Client -> IO ()
+playerPause client = do callPlayer client "Pause"; return ();                                 
+
+playerPlayPause :: Client -> IO ()
+playerPlayPause client = do
+  status <- (fmap statusMusicMaybe) $ getStatusInfo client;
+  case status of
+    Paused  -> callPlayer client "Pause"
+    Stopped -> callPlayer client "Play"
+    Playing -> callPlayer client "Play"
+  return ();
+               
+playerPrev :: Client -> IO ()
+playerPrev client = do callPlayer client "Prev"; return ();
+
+playerNext :: Client -> IO ()
+playerNext client = do callPlayer client "Next"; return ();
