@@ -4,6 +4,13 @@ module DBusController ( SongInfo(..)
                       , statusMusicMaybe
                       , getSongInfo
                       , getStatusInfo
+                      , playerStop
+                      , playerPlay
+                      , playerPause
+                      , playerPlayPause
+                      , playerPrev
+                      , playerNext
+                      , serieStop
                       ) where
 
 import Data.Int
@@ -129,3 +136,6 @@ playerPrev client = do callPlayer client "Prev"; return ();
 
 playerNext :: Client -> IO ()
 playerNext client = do callPlayer client "Next"; return ();
+
+serieStop :: Client -> IO ()
+serieStop client = return ()

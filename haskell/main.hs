@@ -2,41 +2,45 @@
 
 module Main where
 import Control.Applicative ((<$>), optional)
-import Control.Monad (msum, forM_)
+import Control.Monad (msum, forM_, when)
 import Control.Monad.Trans  (liftIO, lift)
-import Data.Maybe (fromMaybe)
-import Data.Typeable
-import Data.Data
 import Data.ByteString.Lazy (ByteString)
+import Data.Data
+import Data.Maybe (fromMaybe, isJust)
 import Data.Text (Text)
 import Data.Text.Lazy (unpack)
+import Data.Typeable
 import Happstack.Server (asContentType, nullConf, serveFile, simpleHTTP, simpleHTTPWithSocket
-                        , ServerPart, toResponse, ok, Response, dir, seeOther, bindIPv4, port)
+                        , ServerPart, toResponse, ok, Response, dir, seeOther, bindIPv4, port
+                        , look)
 import Text.StringTemplate
 import Text.StringTemplate.GenericStandard
 import Text.Blaze ((!))
 import qualified Text.Blaze.Html5 as H
 import qualified Text.Blaze.Html5.Attributes as A
 
-import DBusController (StatusInfo(..), SongInfo(..), statusMusicMaybe, getSongInfo, getStatusInfo)
+import DBusController (StatusInfo(..), SongInfo(..), statusMusicMaybe, getSongInfo, getStatusInfo
+                      , playerStop, playerPlay, playerPause, playerPlayPause, playerPrev
+                      , playerNext, serieStop)
 import DBus.Client (connectSession, Client)
 
-data Button = Button { keyword :: String
-                       , displayname :: String
-                       -- , function ::
+data Button = Button { displayname :: String
+                       , function :: Client -> IO ()
                        } deriving (Show)
-type Buttons = [Button]
+type Buttons = [(String, Button)]
 
-musicbuttons = [Button { keyword = "m_prev", displayname = "Previous" }
-               ,Button { keyword = "m_next", displayname = "Next"}
-               ,Button { keyword = "m_play", displayname = "Play"}
-               ,Button { keyword = "m_pause", displayname = "Pause"}
-               ,Button { keyword = "m_pp", displayname = "PlayPause"}
-               ,Button { keyword = "m_stop", displayname = "Stop"}
+musicbuttons = [("m_prev", Button {displayname = "Previous", function = playerPrev})
+               -- ,Button { keyword = "m_next", displayname = "Next"}
+               -- ,Button { keyword = "m_play", displayname = "Play"}
+               -- ,Button { keyword = "m_pause", displayname = "Pause"}
+               -- ,Button { keyword = "m_pp", displayname = "PlayPause"}
+               -- ,Button { keyword = "m_stop", displayname = "Stop"}
                ]
-seriebuttons = [Button { keyword = "s_stop", displayname = "Stop"}
-               ,Button { keyword = "s_kill", displayname = "Kill"}
-               ]
+seriebuttons = [("s_stop", Button{displayname = "Stop", function = serieStop})
+--                -- ,Button { keyword = "s_kill", displayname = "Kill"}
+                ]
+
+buttons = musicbuttons ++ seriebuttons
 
 bodyTemplate :: H.Html ->H.Html
 bodyTemplate body =
@@ -49,9 +53,8 @@ bodyTemplate body =
     H.body $ do
       body
 
-buttonTemplate :: Button -> H.Html
-buttonTemplate button =
-  let value = keyword button in
+buttonTemplate :: (String,Button) -> H.Html
+buttonTemplate (value, button) =
   let name = displayname button in
   let v = H.toValue value in 
   H.form ! A.action "/execute" ! A.method "get" $ do
@@ -105,16 +108,20 @@ indexPage client = do {
   song <- liftIO $ getSongInfo client;
   ok $ toResponse $ bodyTemplate $ (indexTemplate song status)
   }
-  
+
 executePage :: Client -> ServerPart Response
-executePage client = do {                       
-  ok $ toResponse $ bodyTemplate "blubb"
+executePage client = do {
+  what <- look "what";
+  let button = lookup what buttons in
+  when (isJust button) ((function button) client);
+  return $ ok $ toResponse $ bodyTemplate $ H.toHtml what;
   }
 
 main :: IO ()
 main = do
   let conf = nullConf
       addr = "127.0.0.1"
+  putStrLn "Starting server";
   s <- bindIPv4 addr (port conf); 
   client <- DBus.Client.connectSession;    
   simpleHTTPWithSocket s conf $ msum
