@@ -118,8 +118,11 @@ executePage :: Client -> ServerPart Response
 executePage client = do
   what <- look "what";
   ret <- liftIO $ getFun what client;
-  seeOther "/" ""
-  -- ok $ toResponse $ bodyTemplate $ H.toHtml what
+  seeOther ("/"::String) (toResponse ("" ::String))
+
+coverPage :: Client -> ServerPart Response
+coverPage client = do
+  ok $ toResponse $ H.toHtml ("not yet implemented"::String)
 
 main :: IO ()
 main = do
@@ -130,6 +133,7 @@ main = do
   client <- DBus.Client.connectSession;    
   simpleHTTPWithSocket s conf $ msum
        [ dir "style.css" $ serveFile (asContentType "text/css") "../style.css"
+       , dir "cover" $ coverPage client
        , dir "execute" $ executePage client
        , indexPage client
        ]
