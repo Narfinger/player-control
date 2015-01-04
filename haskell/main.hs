@@ -6,7 +6,7 @@ import Control.Monad (msum, forM_, when)
 import Control.Monad.Trans  (liftIO, lift)
 import Data.ByteString.Lazy (ByteString)
 import Data.Data
-import Data.Maybe (fromMaybe, isJust)
+import Data.Maybe (fromMaybe, isJust, fromJust, isNothing)
 import Data.Text (Text)
 import Data.Text.Lazy (unpack)
 import Data.Typeable
@@ -29,12 +29,12 @@ data Button = Button { displayname :: String
                        } deriving (Show)
 type Buttons = [(String, Button)]
 
-musicbuttons = [("m_prev", Button {displayname = "Previous", function = playerPrev})
-               -- ,Button { keyword = "m_next", displayname = "Next"}
-               -- ,Button { keyword = "m_play", displayname = "Play"}
-               -- ,Button { keyword = "m_pause", displayname = "Pause"}
-               -- ,Button { keyword = "m_pp", displayname = "PlayPause"}
-               -- ,Button { keyword = "m_stop", displayname = "Stop"}
+musicbuttons = [("m_prev",   Button {displayname = "Previous",  function = playerPrev})
+                ,("m_next",  Button {displayname = "Next",      function = playerNext})
+                ,("m_play",  Button {displayname = "Play",      function = playerPlay})
+                ,("m_pause", Button {displayname = "Pause",     function = playerPause})
+                ,("m_pp",    Button {displayname = "PlayPause", function = playerPlayPause})
+                ,("m_stop",  Button {displayname = "Stop",      function = playerStop})
                ]
 seriebuttons = [("s_stop", Button{displayname = "Stop", function = serieStop})
 --                -- ,Button { keyword = "s_kill", displayname = "Kill"}
@@ -87,10 +87,6 @@ indexTemplate song statusinfo =
       H.table $ do
            H.tr $ forM_ buttonlistSerie (H.td)
       H.h2 $ do "Names of Episodes or series or something?"
-                                
-                                   
-                                     
-
                                        
 appTemplate :: String -> H.Html -> H.Html
 appTemplate title body =
@@ -109,13 +105,21 @@ indexPage client = do {
   ok $ toResponse $ bodyTemplate $ (indexTemplate song status)
   }
 
+getFun :: String -> Client -> IO ()
+getFun key =
+  let mbutton = lookup key buttons in
+  if isNothing mbutton then
+    \c -> return ()
+  else
+    let button = fromJust mbutton in
+    function button
+
 executePage :: Client -> ServerPart Response
-executePage client = do {
+executePage client = do
   what <- look "what";
-  let button = lookup what buttons in
-  when (isJust button) ((function button) client);
-  return $ ok $ toResponse $ bodyTemplate $ H.toHtml what;
-  }
+  ret <- liftIO $ getFun what client;
+  seeOther "/" ""
+  -- ok $ toResponse $ bodyTemplate $ H.toHtml what
 
 main :: IO ()
 main = do

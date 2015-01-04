@@ -128,7 +128,7 @@ playerPlayPause client = do
   case status of
     Paused  -> callPlayer client "Pause"
     Stopped -> callPlayer client "Play"
-    Playing -> callPlayer client "Play"
+    Playing -> callPlayer client "Pause"
   return ();
                
 playerPrev :: Client -> IO ()
