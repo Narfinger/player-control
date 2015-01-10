@@ -10,9 +10,12 @@ module DBusController ( SongInfo(..)
                       , playerPlayPause
                       , playerPrev
                       , playerNext
-                      , serieStop
+                      , serieKill
+                      , serieNext
+                      , serieKillAndNext
                       ) where
 
+import Control.Concurrent (threadDelay)
 import Data.Int
 import qualified Data.Map as M
 import Data.Maybe
@@ -27,6 +30,7 @@ data SerieviewerStatus = Running | NotRunning deriving (Show)
 data SongInfo = SongInfo { title :: String
                          , artist :: String
                          , album :: String
+                         , arturl :: String
                          } deriving (Show) 
 
 data StatusInfo = StatusInfo { statusmusic :: Maybe MusicStatus
@@ -75,7 +79,7 @@ fromMaybeVariant def v =
 lookupDictionary :: (IsVariant a) => String -> a -> [(Variant, Variant)] -> a
 lookupDictionary key def dict =
     let k = toVariant key
-        defv = toVariant ("-" ::String)
+        defv = toVariant ("???" ::String)
         v = fromMaybe defv $ lookup k dict in
     fromMaybeVariant def $ fromMaybeVariant defv v
 
@@ -87,7 +91,8 @@ extractTrackInfo method =
       title'  = lookupDictionary "title"  "-" dict
       artist' = lookupDictionary "artist" "-" dict
       album'  = lookupDictionary "album"  "-" dict in
-  SongInfo { title = title', artist = artist', album = album' }
+      -- arturl' = lookupDictionary "arturl" "?" dict in
+  SongInfo { title = title', artist = artist', album = album', arturl = show body  }
 
 extractTrackID :: MethodReturn -> Maybe Int32
 extractTrackID method = fromVariant $ head $ methodReturnBody method
@@ -137,5 +142,33 @@ playerPrev client = do callPlayer client "Prev"; return ();
 playerNext :: Client -> IO ()
 playerNext client = do callPlayer client "Next"; return ();
 
-serieStop :: Client -> IO ()
-serieStop client = return ()
+
+-- serie calls
+callSerie :: Client -> String -> IO MethodReturn
+callSerie client method =
+  let o = objectPath_ "/Serieviewer" in
+  let m = memberName_ method in
+  call_ client (methodCall o "org.serieviewer" m)
+  { methodCallDestination = Just "org.serieviewer"
+  }
+
+callVLC :: Client -> String -> IO MethodReturn
+callVLC client method =
+  let o = objectPath_ "/org/mpris/MediaPlayer2" in
+  let m = memberName_ method in
+  call_ client (methodCall o "org.mpris.MediaPlayer2" m)
+  { methodCallDestination = Just "org.mpris.MediaPlayer2.vlc"
+  }
+
+serieKill :: Client -> IO ()
+serieKill client = do callVLC client "Quit"; return ();
+
+serieNext :: Client -> IO ()
+serieNext client = do callSerie client "playNextInSerie"; return ();
+
+serieKillAndNext :: Client -> IO ()
+serieKillAndNext client = do
+  serieKill client;
+  threadDelay 1;
+  serieNext client;
+

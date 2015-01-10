@@ -10,9 +10,10 @@ import Data.Maybe (fromMaybe, isJust, fromJust, isNothing)
 import Data.Text (Text)
 import Data.Text.Lazy (unpack)
 import Data.Typeable
+import Happstack.Server (Browsing (DisableBrowsing))
 import Happstack.Server (asContentType, nullConf, serveFile, simpleHTTP, simpleHTTPWithSocket
                         , ServerPart, toResponse, ok, Response, dir, seeOther, bindIPv4, port
-                        , look)
+                        , look, serveDirectory)
 import Text.StringTemplate
 import Text.StringTemplate.GenericStandard
 import Text.Blaze ((!))
@@ -21,7 +22,7 @@ import qualified Text.Blaze.Html5.Attributes as A
 
 import DBusController (StatusInfo(..), SongInfo(..), statusMusicMaybe, getSongInfo, getStatusInfo
                       , playerStop, playerPlay, playerPause, playerPlayPause, playerPrev
-                      , playerNext, serieStop)
+                      , playerNext, serieKill, serieNext, serieKillAndNext)
 import DBus.Client (connectSession, Client)
 
 data Button = Button { displayname :: String
@@ -36,8 +37,9 @@ musicbuttons = [("m_prev",   Button {displayname = "Previous",  function = playe
                 ,("m_pp",    Button {displayname = "PlayPause", function = playerPlayPause})
                 ,("m_stop",  Button {displayname = "Stop",      function = playerStop})
                ]
-seriebuttons = [("s_stop", Button{displayname = "Stop", function = serieStop})
---                -- ,Button { keyword = "s_kill", displayname = "Kill"}
+seriebuttons = [("s_kill", Button{displayname = "Kill Player", function = serieKill})
+               ,("s_next", Button{displayname = "Next", function = serieNext})
+               ,("s_kn", Button{displayname = "Kill and Next", function = serieKillAndNext})
                 ]
 
 buttons = musicbuttons ++ seriebuttons
@@ -64,7 +66,8 @@ buttonTemplate (value, button) =
 indexTemplate :: SongInfo -> StatusInfo -> H.Html
 indexTemplate song statusinfo =
   let buttonlistMusic = map (\x -> buttonTemplate x) musicbuttons
-      buttonlistSerie = map (\x -> buttonTemplate x) seriebuttons in
+      buttonlistSerie = map (\x -> buttonTemplate x) seriebuttons
+      coverurl = H.toValue $ arturl song in
   H.div ! A.class_ "wrapperdiv" $ do
     H.div ! A.class_ "musicdiv" $ do
        H.h2 $ do "Music"
@@ -79,7 +82,7 @@ indexTemplate song statusinfo =
            H.td $ do H.toHtml $ album $ song
        H.table  $ do 
          H.tr $ forM_ buttonlistMusic (H.td)
-       H.img ! A.src "/cover" ! A.width "300px" ! A.height "300px"
+       H.img ! A.src coverurl ! A.width "300px" ! A.height "300px"
        H.p ! A.class_ "status" $ do H.toHtml $ "Status: " ++ (show $ statusMusicMaybe statusinfo)
     H.div ! A.class_ "seriediv" $ do
       H.h2 $ do "Serieviewer"
@@ -105,8 +108,8 @@ indexPage client = do {
   ok $ toResponse $ bodyTemplate $ (indexTemplate song status)
   }
 
-getFun :: String -> Client -> IO ()
-getFun key =
+getButtonFun :: String -> Client -> IO ()
+getButtonFun key =
   let mbutton = lookup key buttons in
   if isNothing mbutton then
     \c -> return ()
@@ -117,12 +120,13 @@ getFun key =
 executePage :: Client -> ServerPart Response
 executePage client = do
   what <- look "what";
-  ret <- liftIO $ getFun what client;
+  ret <- liftIO $ getButtonFun what client;
   seeOther ("/"::String) (toResponse ("" ::String))
 
-coverPage :: Client -> ServerPart Response
-coverPage client = do
-  ok $ toResponse $ H.toHtml ("not yet implemented"::String)
+-- coverPage :: Client -> ServerPart Response
+-- coverPage client = do
+--   song <- liftIO $ getSongInfo client;
+--   serveFile (asContentType "image/jpeg") (arturl song)
 
 main :: IO ()
 main = do
@@ -133,7 +137,7 @@ main = do
   client <- DBus.Client.connectSession;    
   simpleHTTPWithSocket s conf $ msum
        [ dir "style.css" $ serveFile (asContentType "text/css") "../style.css"
-       , dir "cover" $ coverPage client
+       , dir "cover" $ serveDirectory DisableBrowsing [] "/tmp"
        , dir "execute" $ executePage client
        , indexPage client
        ]
