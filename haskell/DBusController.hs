@@ -23,6 +23,7 @@ import Data.String
 import DBus
 import DBus.Client
 import Debug.Trace (trace)
+import System.IO.Error
 
 data MusicStatus = Playing | Stopped | Paused deriving (Show)
 data SerieviewerStatus = Running | NotRunning deriving (Show)
@@ -34,7 +35,7 @@ data SongInfo = SongInfo { title :: String
                          } deriving (Show) 
 
 data StatusInfo = StatusInfo { statusmusic :: Maybe MusicStatus
-                             , statusserie :: Maybe SerieviewerStatus
+                             , statusserie :: SerieviewerStatus
                              } deriving (Show)
 
 statusMusicMaybe :: StatusInfo -> MusicStatus
@@ -92,7 +93,7 @@ extractTrackInfo method =
       artist' = lookupDictionary "artist" "-" dict
       album'  = lookupDictionary "album"  "-" dict in
       -- arturl' = lookupDictionary "arturl" "?" dict in
-  SongInfo { title = title', artist = artist', album = album', arturl = show body  }
+  SongInfo { title = title', artist = artist', album = album', arturl = show $ methodReturnBody method  }
 
 extractTrackID :: MethodReturn -> Maybe Int32
 extractTrackID method = fromVariant $ head $ methodReturnBody method
@@ -112,9 +113,11 @@ getSongInfo client = do
 
 getStatusInfo :: Client -> IO StatusInfo
 getStatusInfo client = do
-  let methodreturn = callPlayer client "GetStatus"
-  statusm' <- fmap extractPlayStatusInfo methodreturn;
-  return StatusInfo { statusserie = Nothing, statusmusic = statusm'}
+  let m_methodreturn = callPlayer client "GetStatus"
+  let s_methodreturn = callDBusNames client
+  statusm' <- fmap extractPlayStatusInfo m_methodreturn;
+  statuss' <- fmap serieStatus s_methodreturn;
+  return StatusInfo { statusserie = statuss', statusmusic = statusm'}
 
 
 -- controlling calls
@@ -160,6 +163,23 @@ callVLC client method =
   { methodCallDestination = Just "org.mpris.MediaPlayer2.vlc"
   }
 
+callDBusNames :: Client -> IO MethodReturn
+callDBusNames client =
+  let o = objectPath_ "/"
+      m = memberName_ "ListNames" in
+  call_ client (methodCall o "org.freedesktop.DBus" m)
+  { methodCallDestination = Just "org.freedesktop.DBus"
+  }
+
+serieStatus :: MethodReturn -> SerieviewerStatus
+serieStatus method =
+  let v = head $ methodReturnBody method
+      list = (fromVariant v ::Maybe [String])
+      test = \l -> "org.serieviewer" `elem` l
+      exists = maybe False test list in
+  if exists then Running else NotRunning
+      
+
 serieKill :: Client -> IO ()
 serieKill client = do callVLC client "Quit"; return ();
 
@@ -169,6 +189,6 @@ serieNext client = do callSerie client "playNextInSerie"; return ();
 serieKillAndNext :: Client -> IO ()
 serieKillAndNext client = do
   serieKill client;
-  threadDelay 1;
+  threadDelay 5;
   serieNext client;
 
