@@ -19,11 +19,14 @@ import Text.StringTemplate.GenericStandard
 import Text.Blaze ((!))
 import qualified Text.Blaze.Html5 as H
 import qualified Text.Blaze.Html5.Attributes as A
+import System.Process
+
 
 import DBusController (StatusInfo(..), SongInfo(..), statusMusicMaybe, getSongInfo, getStatusInfo
                       , playerStop, playerPlay, playerPause, playerPlayPause, playerPrev
                       , playerNext, serieKill, serieNext, serieKillAndNext)
-import DBus.Client (connectSession, Client)
+import DBus (Address, parseAddress)
+import DBus.Client (connect, connectSession, Client)
 
 data Button = Button { displayname :: String
                        , function :: Client -> IO ()
@@ -67,7 +70,7 @@ indexTemplate :: SongInfo -> StatusInfo -> H.Html
 indexTemplate song statusinfo =
   let buttonlistMusic = map (\x -> buttonTemplate x) musicbuttons
       buttonlistSerie = map (\x -> buttonTemplate x) seriebuttons
-      coverurl = H.toValue $ arturl song in
+      coverurl = H.toValue $ "/cover/" ++ arturl song in
   H.div ! A.class_ "wrapperdiv" $ do
     H.div ! A.class_ "musicdiv" $ do
        H.h2 $ do "Music"
@@ -128,13 +131,25 @@ executePage client = do
 --   song <- liftIO $ getSongInfo client;
 --   serveFile (asContentType "image/jpeg") (arturl song)
 
+
+getDBusAddress :: IO (Maybe Address)
+getDBusAddress = do             -- this launches a new dbus because...
+  env <- readProcess "dbus-launch" [] [];
+  let var = head $ lines env; -- DBUS_SESSION_BUS_ADDRESS=...
+  let addr = drop 25 var;
+  putStrLn addr;
+  return $ parseAddress addr;
+
+
 main :: IO ()
 main = do
   let conf = nullConf
-      addr = "127.0.0.1"
+      addr = "0.0.0.0"
+  putStrLn "Finding dbus address";
+  Just dbusaddress <- getDBusAddress;
   putStrLn "Starting server";
   s <- bindIPv4 addr (port conf); 
-  client <- DBus.Client.connectSession;    
+  client <- DBus.Client.connectSession;
   simpleHTTPWithSocket s conf $ msum
        [ dir "style.css" $ serveFile (asContentType "text/css") "../style.css"
        , dir "cover" $ serveDirectory DisableBrowsing [] "/tmp"

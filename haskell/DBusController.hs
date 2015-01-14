@@ -18,6 +18,7 @@ module DBusController ( SongInfo(..)
 import Control.Concurrent (threadDelay)
 import Data.Int
 import qualified Data.Map as M
+import Data.List.Split (splitOn)
 import Data.Maybe
 import Data.String
 import DBus
@@ -91,9 +92,10 @@ extractTrackInfo method =
       dict = dictionaryItems body
       title'  = lookupDictionary "title"  "-" dict
       artist' = lookupDictionary "artist" "-" dict
-      album'  = lookupDictionary "album"  "-" dict in
-      -- arturl' = lookupDictionary "arturl" "?" dict in
-  SongInfo { title = title', artist = artist', album = album', arturl = show $ methodReturnBody method  }
+      album'  = lookupDictionary "album"  "-" dict
+      arturl' = lookupDictionary "arturl" "?" dict
+      artfile = last $ splitOn "/" arturl' in
+  SongInfo { title = title', artist = artist', album = album', arturl = artfile  }
 
 extractTrackID :: MethodReturn -> Maybe Int32
 extractTrackID method = fromVariant $ head $ methodReturnBody method
@@ -104,11 +106,13 @@ extractPlayStatusInfo method =
     let body = (fromVariant v) :: Maybe (Int32, Int32, Int32, Int32) in
     createMusicStatus $ fromMaybe (0,0,0,0) body
 
+-- wtf man, this is stupid and i should apologize to the guy because i should get /Player getmetadata and nothing else you numbskull
 getSongInfo :: Client -> IO SongInfo
 getSongInfo client = do
-  let methodreturn = callTrack client "GetCurrentTrack"
-  Just id <- fmap extractTrackID methodreturn;
-  tinfo <- getTrackInfo client id;
+  tinfo <- callPlayer client "GetMetadata";
+  -- let methodreturn = callPlayer client "GetMetadata"
+  -- Just id <- fmap extractTrackID methodreturn;
+  -- tinfo <- getTrackInfo client id;
   return (extractTrackInfo tinfo)
 
 getStatusInfo :: Client -> IO StatusInfo
