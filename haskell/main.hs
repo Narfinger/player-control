@@ -20,6 +20,7 @@ import Text.Blaze ((!))
 import qualified Text.Blaze.Html5 as H
 import qualified Text.Blaze.Html5.Attributes as A
 import System.Process
+import System.Directory
 
 
 import DBusController (StatusInfo(..), SongInfo(..), statusMusicMaybe, getSongInfo, getStatusInfo
@@ -132,13 +133,28 @@ executePage client = do
 --   serveFile (asContentType "image/jpeg") (arturl song)
 
 
+extractAddress :: String -> String
+extractAddress file =
+  let myfilter = head . filter (\x -> (head x /= '#'))
+      line = myfilter $ lines file in
+  drop 25 line  
+
 getDBusAddress :: IO (Maybe Address)
 getDBusAddress = do             -- this launches a new dbus because...
-  env <- readProcess "dbus-launch" [] [];
-  let var = head $ lines env; -- DBUS_SESSION_BUS_ADDRESS=...
-  let addr = drop 25 var;
-  putStrLn addr;
-  return $ parseAddress addr;
+  homedir <- getHomeDirectory;
+  let path = homedir ++ "/.dbus/session-bus/"
+  dir <- getDirectoryContents path;
+  let file = path ++ (head dir)
+  -- putStrLn path;
+  -- putStrLn $ head dir;
+  content <- readFile file;
+  -- env <- readProcess "dbus-launch" [] [];
+  -- let var = head $ lines env; -- DBUS_SESSION_BUS_ADDRESS=...
+  -- let addr = drop 25 var;
+  -- putStrLn addr;
+  let addr = extractAddress content
+  putStrLn ("DBus Address: " ++ addr);
+  return (parseAddress addr);
 
 
 main :: IO ()
@@ -148,8 +164,9 @@ main = do
   putStrLn "Finding dbus address";
   Just dbusaddress <- getDBusAddress;
   putStrLn "Starting server";
+  putStrLn "WARNING: WE WILL SHARE THE WHOLE /tmp DIRECOTRY!";
   s <- bindIPv4 addr (port conf); 
-  client <- DBus.Client.connectSession;
+  client <- DBus.Client.connect dbusaddress;
   simpleHTTPWithSocket s conf $ msum
        [ dir "style.css" $ serveFile (asContentType "text/css") "../style.css"
        , dir "cover" $ serveDirectory DisableBrowsing [] "/tmp"
