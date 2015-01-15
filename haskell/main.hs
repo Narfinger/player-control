@@ -167,6 +167,7 @@ main = do
   putStrLn "WARNING: WE WILL SHARE THE WHOLE /tmp DIRECOTRY!";
   s <- bindIPv4 addr (port conf); 
   client <- DBus.Client.connect dbusaddress;
+  putStrLn "Successfully connected to dbus";
   simpleHTTPWithSocket s conf $ msum
        [ dir "style.css" $ serveFile (asContentType "text/css") "../style.css"
        , dir "cover" $ serveDirectory DisableBrowsing [] "/tmp"
