@@ -25,7 +25,8 @@ import System.Directory
 
 import DBusController (StatusInfo(..), SongInfo(..), statusMusicMaybe, getSongInfo, getStatusInfo
                       , playerStop, playerPlay, playerPause, playerPlayPause, playerPrev
-                      , playerNext, serieKill, serieNext, serieKillAndNext)
+                      , playerNext, serieKill, serieNext, serieKillAndNext, vlcPlay, vlcPause, vlcChapterPrev
+                      , vlcChapterNext)
 import DBus (Address, parseAddress)
 import DBus.Client (connect, connectSession, Client)
 
@@ -34,19 +35,24 @@ data Button = Button { displayname :: String
                        } deriving (Show)
 type Buttons = [(String, Button)]
 
-musicbuttons = [("m_prev",   Button {displayname = "Previous",  function = playerPrev})
-                ,("m_next",  Button {displayname = "Next",      function = playerNext})
-                ,("m_play",  Button {displayname = "Play",      function = playerPlay})
-                ,("m_pause", Button {displayname = "Pause",     function = playerPause})
-                ,("m_pp",    Button {displayname = "PlayPause", function = playerPlayPause})
-                ,("m_stop",  Button {displayname = "Stop",      function = playerStop})
+musicbuttons = [("m_prev",  Button {displayname = "Previous",  function = playerPrev})
+               ,("m_next",  Button {displayname = "Next",      function = playerNext})
+               ,("m_play",  Button {displayname = "Play",      function = playerPlay})
+               ,("m_pause", Button {displayname = "Pause",     function = playerPause})
+               ,("m_pp",    Button {displayname = "PlayPause", function = playerPlayPause})
+               ,("m_stop",  Button {displayname = "Stop",      function = playerStop})
                ]
-seriebuttons = [("s_kill", Button{displayname = "Kill Player", function = serieKill})
-               ,("s_next", Button{displayname = "Next", function = serieNext})
-               ,("s_kn", Button{displayname = "Kill and Next", function = serieKillAndNext})
+seriebuttons = [("s_kill",  Button {displayname = "Kill Player", function = serieKill})
+               ,("s_next",  Button {displayname = "Next", function = serieNext})
+               ,("s_kn",    Button {displayname = "Kill and Next", function = serieKillAndNext})
                 ]
+vlcbuttons   = [("vlc_play",  Button {displayname = "Pause",            function = vlcPlay})
+               ,("vlc_pause", Button {displayname = "Play",             function = vlcPause})
+--               ,("vlc_cprev", Button {displayname = "Previous Chapter", function = vlcChapterPrev})
+--               ,("vlc_cnext", Button {displayname = "Next Chapter",     function = vlcChapterNext})
+               ]
 
-buttons = musicbuttons ++ seriebuttons
+buttons = musicbuttons ++ seriebuttons ++ vlcbuttons
 
 bodyTemplate :: H.Html ->H.Html
 bodyTemplate body =
@@ -67,10 +73,14 @@ buttonTemplate (value, button) =
     H.button ! A.type_ "submit" ! A.name "what" ! A.value v $ do
       H.toHtml name
 
+mapButtonToTemplate :: [(String,Button)] -> [H.Html]
+mapButtonToTemplate buttons = map (\x -> buttonTemplate x) buttons
+
 indexTemplate :: SongInfo -> StatusInfo -> H.Html
 indexTemplate song statusinfo =
-  let buttonlistMusic = map (\x -> buttonTemplate x) musicbuttons
-      buttonlistSerie = map (\x -> buttonTemplate x) seriebuttons
+  let buttonlistMusic = mapButtonToTemplate musicbuttons
+      buttonlistSerie = mapButtonToTemplate seriebuttons
+      buttonlistVLC   = mapButtonToTemplate vlcbuttons 
       coverurl = H.toValue $ "/cover/" ++ arturl song in
   H.div ! A.class_ "wrapperdiv" $ do
     H.div ! A.class_ "musicdiv" $ do
@@ -93,6 +103,9 @@ indexTemplate song statusinfo =
       H.p ! A.class_ "status" $ do  H.toHtml $ "Status: " ++ (show $ statusserie statusinfo)
       H.table $ do
            H.tr $ forM_ buttonlistSerie (H.td)
+      H.h2 $ do "VLC Controls"
+                H.table $ do
+                  H.tr $ forM_ buttonlistVLC (H.td)
       H.h2 $ do "Names of Episodes or series or something?"
                                        
 appTemplate :: String -> H.Html -> H.Html

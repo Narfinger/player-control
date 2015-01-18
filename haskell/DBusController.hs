@@ -13,6 +13,10 @@ module DBusController ( SongInfo(..)
                       , serieKill
                       , serieNext
                       , serieKillAndNext
+                      , vlcPause
+                      , vlcPlay
+                      , vlcChapterPrev
+                      , vlcChapterNext
                       ) where
 
 import Control.Concurrent (threadDelay)
@@ -196,3 +200,16 @@ serieKillAndNext client = do
   threadDelay 5;
   serieNext client;
 
+
+-- VLC Calls
+vlcPause :: Client -> IO ()
+vlcPause client = do callVLC client "Pause"; return (); 
+
+vlcPlay :: Client -> IO ()
+vlcPlay client = do callVLC client "Play"; return ();
+
+vlcChapterPrev :: Client -> IO ()
+vlcChapterPrev client = do return ()
+
+vlcChapterNext :: Client -> IO ()
+vlcChapterNext client = do return ()
