@@ -21,12 +21,12 @@ import qualified Text.Blaze.Html5 as H
 import qualified Text.Blaze.Html5.Attributes as A
 import System.Process
 import System.Directory
-
-
-import DBusController (StatusInfo(..), SongInfo(..), statusMusicMaybe, getSongInfo, getStatusInfo
+import MusicController (MusicStatus(..), SongInfo(..),  statusMusicMaybe, getSongInfo, getMusicStatus
                       , playerStop, playerPlay, playerPause, playerPlayPause, playerPrev
-                      , playerNext, serieKill, serieNext, serieKillAndNext, vlcPlay, vlcPause, vlcChapterPrev
-                      , vlcChapterNext)
+                      , playerNext)
+import SerieController (SerieviewerStatus(..), getSerieviewerStatus, serieKill, serieNext, serieKillAndNext, vlcPlay, vlcPause, vlcChapterPrev
+                       , vlcChapterNext)
+
 import DBus (Address, parseAddress)
 import DBus.Client (connect, connectSession, Client)
 
@@ -76,8 +76,9 @@ buttonTemplate (value, button) =
 mapButtonToTemplate :: [(String,Button)] -> [H.Html]
 mapButtonToTemplate buttons = map (\x -> buttonTemplate x) buttons
 
-indexTemplate :: SongInfo -> StatusInfo -> H.Html
-indexTemplate song statusinfo =
+
+indexTemplate :: SongInfo -> Maybe MusicStatus -> SerieviewerStatus -> H.Html
+indexTemplate song musicstatus seriestatus =
   let buttonlistMusic = mapButtonToTemplate musicbuttons
       buttonlistSerie = mapButtonToTemplate seriebuttons
       buttonlistVLC   = mapButtonToTemplate vlcbuttons 
@@ -97,10 +98,10 @@ indexTemplate song statusinfo =
        H.table  $ do 
          H.tr $ forM_ buttonlistMusic (H.td)
        H.img ! A.src coverurl ! A.width "300px" ! A.height "300px"
-       H.p ! A.class_ "status" $ do H.toHtml $ "Status: " ++ (show $ statusMusicMaybe statusinfo)
+       H.p ! A.class_ "status" $ do H.toHtml $ "Status: " ++ (show $ statusMusicMaybe musicstatus)
     H.div ! A.class_ "seriediv" $ do
       H.h2 $ do "Serieviewer"
-      H.p ! A.class_ "status" $ do  H.toHtml $ "Status: " ++ (show $ statusserie statusinfo)
+      H.p ! A.class_ "status" $ do  H.toHtml $ "Status: " ++ (show $ seriestatus)
       H.table $ do
            H.tr $ forM_ buttonlistSerie (H.td)
       H.h2 $ do "VLC Controls"
@@ -120,9 +121,10 @@ appTemplate title body =
 
 indexPage :: Client -> ServerPart Response
 indexPage client = do {
-  status <- liftIO $ getStatusInfo client;
+  musicstatus <- liftIO $ getMusicStatus client;
+  seriestatus <- liftIO $ getSerieviewerStatus client;
   song <- liftIO $ getSongInfo client;
-  ok $ toResponse $ bodyTemplate $ (indexTemplate song status)
+  ok $ toResponse $ bodyTemplate $ (indexTemplate song musicstatus seriestatus)
   }
 
 getButtonFun :: String -> Client -> IO ()
