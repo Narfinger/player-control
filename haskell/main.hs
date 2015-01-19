@@ -74,7 +74,7 @@ buttonTemplate (value, button) =
       H.toHtml name
 
 mapButtonToTemplate :: [(String,Button)] -> [H.Html]
-mapButtonToTemplate buttons = map (\x -> buttonTemplate x) buttons
+mapButtonToTemplate = map (\x -> buttonTemplate x)
 
 
 indexTemplate :: SongInfo -> Maybe MusicStatus -> SerieviewerStatus -> H.Html
