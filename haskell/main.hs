@@ -46,8 +46,8 @@ seriebuttons = [("s_kill",  Button {displayname = "Kill Player", function = seri
                ,("s_next",  Button {displayname = "Next", function = serieNext})
                ,("s_kn",    Button {displayname = "Kill and Next", function = serieKillAndNext})
                 ]
-vlcbuttons   = [("vlc_play",  Button {displayname = "Pause",            function = vlcPlay})
-               ,("vlc_pause", Button {displayname = "Play",             function = vlcPause})
+vlcbuttons   = [("vlc_play",  Button {displayname = "Pause",            function = vlcPause})
+               ,("vlc_pause", Button {displayname = "Play",             function = vlcPlay})
 --               ,("vlc_cprev", Button {displayname = "Previous Chapter", function = vlcChapterPrev})
 --               ,("vlc_cnext", Button {displayname = "Next Chapter",     function = vlcChapterNext})
                ]

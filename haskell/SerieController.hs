@@ -25,13 +25,22 @@ callSerie client method =
   { methodCallDestination = Just "org.serieviewer"
   }
 
+callVLCWithInterface :: Client -> String -> String -> IO MethodReturn
+callVLCWithInterface client interfacename membername =
+  let o = objectPath_ "/org/mpris/MediaPlayer2"
+      m = memberName_ membername
+      i = interfaceName_  interfacename in
+   call_ client (methodCall o i m)
+   { methodCallDestination = Just "org.mpris.MediaPlayer2.vlc"
+   }
+
 callVLC :: Client -> String -> IO MethodReturn
-callVLC client method =
-  let o = objectPath_ "/org/mpris/MediaPlayer2" in
-  let m = memberName_ method in
-  call_ client (methodCall o "org.mpris.MediaPlayer2" m)
-  { methodCallDestination = Just "org.mpris.MediaPlayer2.vlc"
-  }
+callVLC client membername =
+  callVLCWithInterface client "org.mpris.MediaPlayer2" membername
+
+callVLCPlayer :: Client -> String -> IO MethodReturn
+callVLCPlayer client membername =
+  callVLCWithInterface client "org.mpris.MediaPlayer2.Player" membername
 
 callDBusNames :: Client -> IO MethodReturn
 callDBusNames client =
@@ -71,10 +80,10 @@ serieKillAndNext client = do
 
 -- VLC Calls
 vlcPause :: Client -> IO ()
-vlcPause client = do callVLC client "Pause"; return (); 
+vlcPause client = do callVLCPlayer client "Pause"; return (); 
 
 vlcPlay :: Client -> IO ()
-vlcPlay client = do callVLC client "Play"; return ();
+vlcPlay client = do callVLCPlayer client "Play"; return ();
 
 vlcChapterPrev :: Client -> IO ()
 vlcChapterPrev client = do return ()
