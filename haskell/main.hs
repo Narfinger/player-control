@@ -83,12 +83,12 @@ enumerate = zip [1..]
 serieButtonTemplate :: (Int, String) -> H.Html
 serieButtonTemplate (number, string) =
   let n = H.toValue number in
-  H.form ! A.action "/play" ! A.method "get" $ do
-    H.tr $ do
-      H.td $ do H.toHtml string
-      H.td $ do 
-        H.button ! A.type_ "submit" ! A.name "episode" ! A.value n $ do
-           "Play"
+   H.tr $ do
+     H.td $ do H.toHtml number
+     H.td $ do H.toHtml string
+     H.td $ do 
+       H.button ! A.type_ "submit" ! A.name "episode" ! A.value n $ do
+         "Play"
            
 mapSerieToHtml :: [String] -> [H.Html]
 mapSerieToHtml list = 
@@ -128,7 +128,8 @@ indexTemplate song musicstatus seriestatus serielist =
                   H.tr $ forM_ buttonlistVLC (H.td)
       H.h2 $ do "Play Episode"
                 H.table $ do
-                  H.tr $ forM_ buttonlistSeries (H.td)
+                  H.form ! A.action "/play" ! A.method "get" $ do
+                    forM_ buttonlistSeries (H.td)
                                        
 appTemplate :: String -> H.Html -> H.Html
 appTemplate title body =

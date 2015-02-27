@@ -21,8 +21,8 @@ data SerieviewerStatus = Running | NotRunning deriving (Show)
 -- serie calls
 callSerie :: Client -> String -> IO MethodReturn
 callSerie client method =
-  let o = objectPath_ "/Serieviewer" in
-  let m = memberName_ method in
+  let o = objectPath_ "/Serieviewer"
+      m = memberName_ method in
   call_ client (methodCall o "org.serieviewer" m)
   { methodCallDestination = Just "org.serieviewer"
   }
@@ -77,7 +77,6 @@ getSerieList client = do
   let m_methodreturn = callSerie client "getSerieNameList"
   list <- fmap extractSerieNames m_methodreturn;
   return list
-  --return $ ["test1", "test2", "test3"]
 
 serieKill :: Client -> IO ()
 serieKill client = do callVLC client "Quit"; return ();
@@ -92,7 +91,21 @@ serieKillAndNext client = do
   serieNext client;
 
 seriePlay :: Client -> Int -> IO ()
-seriePlay client num = return ()
+seriePlay client id = do
+  return ()
+  -- let o = objectPath_ "/Serieviewer"
+  --     m = memberName_ method in
+  --  call_ client (methodCall o "org.serieviewer" m)
+  --   { methodCallDestination = Just "org.serieviewer"
+  --   }
+  --  return ()
+
+  -- let o = objectPath_ "/Serieviewer"
+  --     m = memberName_ "playIndex" in
+  -- call_ client (methodCall o "org.serieviewer" m)
+  -- { methodCallDestination = Just "org.serieviewer",
+  --   methodCallBody = [toVariant id]
+  -- }
 
 -- VLC Calls
 vlcPause :: Client -> IO ()
