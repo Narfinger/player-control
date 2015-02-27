@@ -1,9 +1,11 @@
 {-# LANGUAGE OverloadedStrings #-}
 module SerieController ( SerieviewerStatus(..)
                        , getSerieviewerStatus
+                       , getSerieList
                        , serieKill
                        , serieNext
                        , serieKillAndNext
+                       , seriePlay
                        , vlcPause
                        , vlcPlay
                        , vlcChapterPrev
@@ -13,7 +15,7 @@ module SerieController ( SerieviewerStatus(..)
 import DBus
 import DBus.Client
 import Control.Concurrent (threadDelay)
-
+import Data.Maybe (fromMaybe)
 data SerieviewerStatus = Running | NotRunning deriving (Show)
 
 -- serie calls
@@ -65,6 +67,18 @@ getSerieviewerStatus client = do
   status <- fmap serieStatus m_methodreturn;
   return status
 
+extractSerieNames :: MethodReturn -> [String]
+extractSerieNames method =
+  let v = head $ methodReturnBody method in
+  fromMaybe [] $ fromVariant v
+
+getSerieList :: Client -> IO [String]
+getSerieList client = do
+  let m_methodreturn = callSerie client "getSerieNameList"
+  list <- fmap extractSerieNames m_methodreturn;
+  return list
+  --return $ ["test1", "test2", "test3"]
+
 serieKill :: Client -> IO ()
 serieKill client = do callVLC client "Quit"; return ();
 
@@ -77,6 +91,8 @@ serieKillAndNext client = do
   threadDelay 5;
   serieNext client;
 
+seriePlay :: Client -> Int -> IO ()
+seriePlay client num = return ()
 
 -- VLC Calls
 vlcPause :: Client -> IO ()

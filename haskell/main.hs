@@ -24,8 +24,8 @@ import System.Directory
 import MusicController (MusicStatus(..), SongInfo(..),  statusMusicMaybe, getSongInfo, getMusicStatus
                       , playerStop, playerPlay, playerPause, playerPlayPause, playerPrev
                       , playerNext)
-import SerieController (SerieviewerStatus(..), getSerieviewerStatus, serieKill, serieNext, serieKillAndNext, vlcPlay, vlcPause, vlcChapterPrev
-                       , vlcChapterNext)
+import SerieController (SerieviewerStatus(..), getSerieviewerStatus, serieKill, serieNext, serieKillAndNext, seriePlay
+                       , vlcPlay, vlcPause, vlcChapterPrev, vlcChapterNext, getSerieList)
 
 import DBus (Address, parseAddress)
 import DBus.Client (connect, connectSession, Client)
@@ -50,7 +50,7 @@ vlcbuttons   = [("vlc_play",  Button {displayname = "Pause",            function
                ,("vlc_pause", Button {displayname = "Play",             function = vlcPlay})
 --               ,("vlc_cprev", Button {displayname = "Previous Chapter", function = vlcChapterPrev})
 --               ,("vlc_cnext", Button {displayname = "Next Chapter",     function = vlcChapterNext})
-               ]
+               ] 
 
 buttons = musicbuttons ++ seriebuttons ++ vlcbuttons
 
@@ -65,23 +65,42 @@ bodyTemplate body =
     H.body $ do
       body
 
-buttonTemplate :: (String,Button) -> H.Html
-buttonTemplate (value, button) =
-  let name = displayname button in
-  let v = H.toValue value in 
-  H.form ! A.action "/execute" ! A.method "get" $ do
+buttonTemplate :: String -> (String,Button) -> H.Html
+buttonTemplate page (value, button) =
+  let name = displayname button
+      v = H.toValue value
+      p = H.toValue page in 
+  H.form ! A.action p ! A.method "get" $ do
     H.button ! A.type_ "submit" ! A.name "what" ! A.value v $ do
       H.toHtml name
 
 mapButtonToTemplate :: [(String,Button)] -> [H.Html]
-mapButtonToTemplate = map (\x -> buttonTemplate x)
+mapButtonToTemplate = map (\x -> buttonTemplate "/execute" x)
 
+enumerate :: [a] -> [(Int,a)]
+enumerate = zip [1..] 
 
-indexTemplate :: SongInfo -> Maybe MusicStatus -> SerieviewerStatus -> H.Html
-indexTemplate song musicstatus seriestatus =
+serieButtonTemplate :: (Int, String) -> H.Html
+serieButtonTemplate (number, string) =
+  let n = H.toValue number in
+  H.form ! A.action "/play" ! A.method "get" $ do
+    H.tr $ do
+      H.td $ do H.toHtml string
+      H.td $ do 
+        H.button ! A.type_ "submit" ! A.name "episode" ! A.value n $ do
+           "Play"
+           
+mapSerieToHtml :: [String] -> [H.Html]
+mapSerieToHtml list = 
+  let enum = (enumerate list :: [(Int, String)]) in
+  map serieButtonTemplate enum
+
+indexTemplate :: SongInfo -> Maybe MusicStatus -> SerieviewerStatus -> [String] -> H.Html
+indexTemplate song musicstatus seriestatus serielist =
   let buttonlistMusic = mapButtonToTemplate musicbuttons
       buttonlistSerie = mapButtonToTemplate seriebuttons
-      buttonlistVLC   = mapButtonToTemplate vlcbuttons 
+      buttonlistVLC   = mapButtonToTemplate vlcbuttons
+      buttonlistSeries = mapSerieToHtml serielist
       coverurl = H.toValue $ "/cover/" ++ arturl song in
   H.div ! A.class_ "wrapperdiv" $ do
     H.div ! A.class_ "musicdiv" $ do
@@ -107,7 +126,9 @@ indexTemplate song musicstatus seriestatus =
       H.h2 $ do "VLC Controls"
                 H.table $ do
                   H.tr $ forM_ buttonlistVLC (H.td)
-      H.h2 $ do "Names of Episodes or series or something?"
+      H.h2 $ do "Play Episode"
+                H.table $ do
+                  H.tr $ forM_ buttonlistSeries (H.td)
                                        
 appTemplate :: String -> H.Html -> H.Html
 appTemplate title body =
@@ -123,8 +144,9 @@ indexPage :: Client -> ServerPart Response
 indexPage client = do {
   musicstatus <- liftIO $ getMusicStatus client;
   seriestatus <- liftIO $ getSerieviewerStatus client;
+  serielist <- liftIO $ getSerieList client;
   song <- liftIO $ getSongInfo client;
-  ok $ toResponse $ bodyTemplate $ (indexTemplate song musicstatus seriestatus)
+  ok $ toResponse $ bodyTemplate $ (indexTemplate song musicstatus seriestatus serielist)
   }
 
 getButtonFun :: String -> Client -> IO ()
@@ -141,6 +163,13 @@ executePage client = do
   what <- look "what";
   ret <- liftIO $ getButtonFun what client;
   seeOther ("/"::String) (toResponse ("" ::String))
+
+playPage :: Client -> ServerPart Response
+playPage client = do
+  episodenum <- look "what";
+  ret <- liftIO $ getButtonFun episodenum client;
+  seeOther ("/"::String) (toResponse (""::String))
+
 
 -- coverPage :: Client -> ServerPart Response
 -- coverPage client = do
@@ -187,5 +216,6 @@ main = do
        [ dir "style.css" $ serveFile (asContentType "text/css") "../style.css"
        , dir "cover" $ serveDirectory DisableBrowsing [] "/tmp"
        , dir "execute" $ executePage client
+       , dir "play" $ playPage client
        , indexPage client
        ]
