@@ -92,21 +92,16 @@ serieKillAndNext client = do
 
 seriePlay :: Client -> Int -> IO ()
 seriePlay client id = do
-  return ()
-  -- let o = objectPath_ "/Serieviewer"
-  --     m = memberName_ method in
-  --  call_ client (methodCall o "org.serieviewer" m)
-  --   { methodCallDestination = Just "org.serieviewer"
-  --   }
-  --  return ()
-
-  -- let o = objectPath_ "/Serieviewer"
-  --     m = memberName_ "playIndex" in
-  -- call_ client (methodCall o "org.serieviewer" m)
-  -- { methodCallDestination = Just "org.serieviewer",
-  --   methodCallBody = [toVariant id]
-  -- }
-
+  let o = objectPath_ "/Serieviewer"
+      m = memberName_ "playIndex"
+      i = show id in
+   call_ client (methodCall o "org.serieviewer" m)
+   {
+     methodCallDestination = Just "org.serieviewer",
+     methodCallBody = [toVariant i]
+   };
+   return ()
+  
 -- VLC Calls
 vlcPause :: Client -> IO ()
 vlcPause client = do callVLCPlayer client "Pause"; return (); 

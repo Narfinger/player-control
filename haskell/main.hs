@@ -168,9 +168,9 @@ executePage client = do
 playPage :: Client -> ServerPart Response
 playPage client = do
   episodenum <- look "what";
-  ret <- liftIO $ getButtonFun episodenum client;
-  seeOther ("/"::String) (toResponse (""::String))
-
+  let id = read episodenum ::Int
+  ret <- liftIO $ seriePlay client id;
+  seeOther ("/bklubb"::String) (toResponse (""::String))
 
 -- coverPage :: Client -> ServerPart Response
 -- coverPage client = do
@@ -216,7 +216,7 @@ main = do
   simpleHTTPWithSocket s conf $ msum
        [ dir "style.css" $ serveFile (asContentType "text/css") "../style.css"
        , dir "cover" $ serveDirectory DisableBrowsing [] "/tmp"
-       , dir "execute" $ executePage client
        , dir "play" $ playPage client
+       , dir "execute" $ executePage client
        , indexPage client
        ]
