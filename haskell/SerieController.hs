@@ -15,9 +15,9 @@ module SerieController ( SerieviewerStatus(..)
 import DBus
 import DBus.Client (call_, Client, ClientError, clientError)
 import Control.Concurrent (threadDelay)
-import Control.Exception (try, tryJust)
+import Control.Exception (try, tryJust, catch)
 import Control.Monad (guard)
-import Data.Maybe (fromMaybe)
+import Data.Maybe (fromMaybe, isNothing)
 data SerieviewerStatus = Running | NotRunning deriving (Show)
 
 isClientError :: IOError -> Bool
@@ -28,15 +28,12 @@ callSerie :: Client -> String -> IO (Maybe MethodReturn)
 callSerie client method = do
   let o = objectPath_ "/Serieviewer"
   let m = memberName_ method
-  r <- tryJust (guard . isClientError)-- this is ugly but is there no test for clienterror?
-       (call_ client (methodCall o "org.serieviewer" m)
+      -- wrong type
+  r <- catch (Just (call_ client (methodCall o "org.serieviewer" m)
                         { methodCallDestination = Just "org.serieviewer"
-                        });
-  case r of
-   Left e -> return Nothing
-   Right m -> return $ Just m 
-  
-       
+                        }))
+       (\e -> return Nothing)
+  return r
 
 callVLCWithInterface :: Client -> String -> String -> IO MethodReturn
 callVLCWithInterface client interfacename membername =
