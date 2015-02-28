@@ -13,19 +13,30 @@ module SerieController ( SerieviewerStatus(..)
                        ) where
 
 import DBus
-import DBus.Client
+import DBus.Client (call_, Client, ClientError, clientError)
 import Control.Concurrent (threadDelay)
+import Control.Exception (try, tryJust)
+import Control.Monad (guard)
 import Data.Maybe (fromMaybe)
 data SerieviewerStatus = Running | NotRunning deriving (Show)
 
+isClientError :: IOError -> Bool
+isClientError e = True
+
 -- serie calls
-callSerie :: Client -> String -> IO MethodReturn
-callSerie client method =
+callSerie :: Client -> String -> IO (Maybe MethodReturn)
+callSerie client method = do
   let o = objectPath_ "/Serieviewer"
-      m = memberName_ method in
-  call_ client (methodCall o "org.serieviewer" m)
-  { methodCallDestination = Just "org.serieviewer"
-  }
+  let m = memberName_ method
+  r <- tryJust (guard . isClientError)-- this is ugly but is there no test for clienterror?
+       (call_ client (methodCall o "org.serieviewer" m)
+                        { methodCallDestination = Just "org.serieviewer"
+                        });
+  case r of
+   Left e -> return Nothing
+   Right m -> return $ Just m 
+  
+       
 
 callVLCWithInterface :: Client -> String -> String -> IO MethodReturn
 callVLCWithInterface client interfacename membername =
@@ -67,10 +78,13 @@ getSerieviewerStatus client = do
   status <- fmap serieStatus m_methodreturn;
   return status
 
-extractSerieNames :: MethodReturn -> [String]
+extractSerieNames :: Maybe MethodReturn -> [String]
 extractSerieNames method =
-  let v = head $ methodReturnBody method in
-  fromMaybe [] $ fromVariant v
+  case method of                -- for some reason matching didn't work, check why
+   Nothing -> []
+   Just m ->
+     let v = head $ methodReturnBody m in
+     fromMaybe [] $ fromVariant v
 
 getSerieList :: Client -> IO [String]
 getSerieList client = do
