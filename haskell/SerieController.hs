@@ -13,15 +13,16 @@ module SerieController ( SerieviewerStatus(..)
                        ) where
 
 import DBus
-import DBus.Client (call_, Client, ClientError, clientError)
+import DBus.Client (call_, Client, ClientError)
 import Control.Concurrent (threadDelay)
-import Control.Exception (try, tryJust, catch)
+import Control.Exception (try, tryJust)
 import Control.Monad (guard)
 import Data.Maybe (fromMaybe, isNothing)
 data SerieviewerStatus = Running | NotRunning deriving (Show)
 
-isClientError :: IOError -> Bool
-isClientError e = True
+
+tryDBusClientError :: IO a -> IO (Either ClientError a)
+tryDBusClientError = try
 
 -- serie calls
 callSerie :: Client -> String -> IO (Maybe MethodReturn)
@@ -29,11 +30,13 @@ callSerie client method = do
   let o = objectPath_ "/Serieviewer"
   let m = memberName_ method
       -- wrong type
-  r <- catch (Just (call_ client (methodCall o "org.serieviewer" m)
+  r <- tryDBusClientError (call_ client (methodCall o "org.serieviewer" m)
                         { methodCallDestination = Just "org.serieviewer"
-                        }))
-       (\e -> return Nothing)
-  return r
+                        })
+  let value = case r of
+               Left e  -> Nothing
+               Right a -> Just a
+  return value
 
 callVLCWithInterface :: Client -> String -> String -> IO MethodReturn
 callVLCWithInterface client interfacename membername =
