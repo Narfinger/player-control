@@ -57,8 +57,9 @@ callDBusNames client =
       m = memberName_ "ListNames" in
   callDBus client "/" "org.freedesktop.DBus" "org.freedesktop.DBus" m
 
-serieStatus :: MethodReturn -> SerieviewerStatus
-serieStatus method =
+serieStatus :: Maybe MethodReturn -> SerieviewerStatus
+serieStatus Nothing       = NotRunning
+serieStatus (Just method) =
   let v = head $ methodReturnBody method
       list = (fromVariant v ::Maybe [String])
       test = \l -> "org.serieviewer" `elem` l

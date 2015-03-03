@@ -12,6 +12,7 @@ module MusicController ( MusicStatus(..)
                        , playerNext
                        ) where
 
+import Control.Exception (try, tryJust)
 import Data.Int
 import qualified Data.Map as M
 import Data.List.Split (splitOn)
@@ -22,7 +23,7 @@ import DBus.Client
 import Debug.Trace (trace)
 import System.IO.Error
 
-data MusicStatus = Playing | Stopped | Paused deriving (Show)
+data MusicStatus = Playing | Stopped | Paused | NotRunning deriving (Show)
 data SongInfo = SongInfo { title :: String
                          , artist :: String
                          , album :: String
@@ -33,26 +34,38 @@ statusMusicMaybe :: Maybe MusicStatus -> MusicStatus
 statusMusicMaybe (Just    x) = x
 statusMusicMaybe Nothing   = Stopped
 
-callMedia :: Client -> String -> String -> IO MethodReturn
-callMedia client path method =
-   call_ client (methodCall (objectPath_ path) "org.freedesktop.MediaPlayer" (memberName_ method))
-        { methodCallDestination = Just "org.mpris.clementine"
-        }
+extractException :: Either ClientError MethodReturn -> Maybe MethodReturn
+extractException (Left e)  = Nothing
+extractException (Right a) = Just a
 
-callPlayer :: Client -> String -> IO MethodReturn
+callDBus :: Client -> ObjectPath -> InterfaceName -> BusName -> MemberName-> IO (Maybe MethodReturn)
+callDBus client objectpath interfacename methoddestination membername = do
+  r <- try (call_ client (methodCall objectpath interfacename membername)
+                           { methodCallDestination = Just methoddestination
+                           })
+  return $ extractException r
+
+callMedia :: Client -> String -> String -> IO (Maybe MethodReturn)
+callMedia client path method = do
+  let p = objectPath_ path
+  let m = memberName_ method
+  callDBus client p "org.freedesktop.MediaPlayer" "org.mpris.clementine" m
+
+callPlayer :: Client -> String -> IO (Maybe MethodReturn)
 callPlayer client method = callMedia client "/Player" method
 
-callTrack :: Client -> String -> IO MethodReturn
+callTrack :: Client -> String -> IO (Maybe MethodReturn)
 callTrack client method = callMedia client "/TrackList" method
 
-getTrackInfo :: Client -> Int32 -> IO MethodReturn
-getTrackInfo client id =
-  let o = objectPath_ "/TrackList" in
-  let m = memberName_ "GetMetadata" in
-  call_ client (methodCall o "org.freedesktop.MediaPlayer" m)
-  { methodCallDestination = Just "org.mpris.clementine",
-    methodCallBody = [toVariant id]
-  }
+getTrackInfo :: Client -> Int32 -> IO (Maybe MethodReturn)
+getTrackInfo client id = do
+  let o = objectPath_ "/TrackList"
+  let m = memberName_ "GetMetadata"
+  r <- try (call_ client (methodCall o "org.freedesktop.MediaPlayer" m)
+       { methodCallDestination = Just "org.mpris.clementine",
+         methodCallBody = [toVariant id]
+       });
+  return $ extractException r;
 
 --First integer: 0 = Playing, 1 = Paused, 2 = Stopped. 
 --Second interger: 0 = Playing linearly , 1 = Playing randomly. 
@@ -62,6 +75,7 @@ createMusicStatus :: (Num a, Eq a) => (a,a,a,a) -> Maybe MusicStatus
 createMusicStatus (0,_,_,_) = Just Playing
 createMusicStatus (1,_,_,_) = Just Paused
 createMusicStatus (2,_,_,_) = Just Stopped
+createMusicStatus (-1,_,_,_) = Just NotRunning
 createMusicStatus _         = Nothing
 
 fromMaybeVariant :: (IsVariant a) => a -> Variant -> a
@@ -76,8 +90,9 @@ lookupDictionary key def dict =
         v = fromMaybe defv $ lookup k dict in
     fromMaybeVariant def $ fromMaybeVariant defv v
 
-extractTrackInfo :: MethodReturn -> SongInfo
-extractTrackInfo method =
+extractTrackInfo :: Maybe MethodReturn -> SongInfo
+extractTrackInfo Nothing       = SongInfo { title = "", artist = "", album = "", arturl = "" }
+extractTrackInfo (Just method) =
   let v =  head $ methodReturnBody method  in
   let Just body =  fromVariant v :: Maybe Dictionary
       dict = dictionaryItems body
@@ -88,11 +103,13 @@ extractTrackInfo method =
       artfile = last $ splitOn "/" arturl' in
   SongInfo { title = title', artist = artist', album = album', arturl = artfile  }
 
-extractTrackID :: MethodReturn -> Maybe Int32
-extractTrackID method = fromVariant $ head $ methodReturnBody method
+extractTrackID :: Maybe MethodReturn -> Maybe Int32
+extractTrackID Nothing       = Nothing
+extractTrackID (Just method) = fromVariant $ head $ methodReturnBody method
 
-extractPlayStatusInfo :: MethodReturn -> Maybe MusicStatus
-extractPlayStatusInfo method =
+extractPlayStatusInfo :: Maybe MethodReturn -> Maybe MusicStatus
+extractPlayStatusInfo Nothing       = createMusicStatus (-1,0,0,0)
+extractPlayStatusInfo (Just method) =
     let v = head $ methodReturnBody method in
     let body = (fromVariant v) :: Maybe (Int32, Int32, Int32, Int32) in
     createMusicStatus $ fromMaybe (0,0,0,0) body
