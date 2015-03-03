@@ -20,48 +20,42 @@ import Control.Monad (guard)
 import Data.Maybe (fromMaybe, isNothing)
 data SerieviewerStatus = Running | NotRunning deriving (Show)
 
+extractException :: Either ClientError MethodReturn -> Maybe MethodReturn
+extractException (Left e)  = Nothing
+extractException (Right a) = Just a
 
-tryDBusClientError :: IO a -> IO (Either ClientError a)
-tryDBusClientError = try
+callDBus :: Client -> ObjectPath -> InterfaceName -> BusName -> MemberName-> IO (Maybe MethodReturn)
+callDBus client objectpath interfacename methoddestination membername = do
+  r <- try (call_ client (methodCall objectpath interfacename membername)
+                           { methodCallDestination = Just methoddestination
+                           })
+  return $ extractException r
 
 -- serie calls
 callSerie :: Client -> String -> IO (Maybe MethodReturn)
 callSerie client method = do
-  let o = objectPath_ "/Serieviewer"
   let m = memberName_ method
-      -- wrong type
-  r <- tryDBusClientError (call_ client (methodCall o "org.serieviewer" m)
-                        { methodCallDestination = Just "org.serieviewer"
-                        })
-  let value = case r of
-               Left e  -> Nothing
-               Right a -> Just a
-  return value
+  callDBus client "/Serieviewer" "org.serieviewer" "org.serieviewer" m
+  
+callVLCWithInterface :: Client -> String -> String -> IO (Maybe MethodReturn)
+callVLCWithInterface client interfacename membername = do
+  let m = memberName_ membername
+  let i = interfaceName_ interfacename
+  callDBus client "/org/mpris/MediaPlayer2" i "org.mpris.MediaPlayer2.vlc" m
 
-callVLCWithInterface :: Client -> String -> String -> IO MethodReturn
-callVLCWithInterface client interfacename membername =
-  let o = objectPath_ "/org/mpris/MediaPlayer2"
-      m = memberName_ membername
-      i = interfaceName_  interfacename in
-   call_ client (methodCall o i m)
-   { methodCallDestination = Just "org.mpris.MediaPlayer2.vlc"
-   }
-
-callVLC :: Client -> String -> IO MethodReturn
+callVLC :: Client -> String -> IO (Maybe MethodReturn)
 callVLC client membername =
   callVLCWithInterface client "org.mpris.MediaPlayer2" membername
 
-callVLCPlayer :: Client -> String -> IO MethodReturn
+callVLCPlayer :: Client -> String -> IO (Maybe MethodReturn)
 callVLCPlayer client membername =
   callVLCWithInterface client "org.mpris.MediaPlayer2.Player" membername
 
-callDBusNames :: Client -> IO MethodReturn
+callDBusNames :: Client -> IO (Maybe MethodReturn)
 callDBusNames client =
   let o = objectPath_ "/"
       m = memberName_ "ListNames" in
-  call_ client (methodCall o "org.freedesktop.DBus" m)
-  { methodCallDestination = Just "org.freedesktop.DBus"
-  }
+  callDBus client "/" "org.freedesktop.DBus" "org.freedesktop.DBus" m
 
 serieStatus :: MethodReturn -> SerieviewerStatus
 serieStatus method =
