@@ -19,6 +19,18 @@ executable player-control
   main-is:             main.hs
   other-modules:       MusicController, SerieController
   other-extensions:    OverloadedStrings
-  build-depends:       base >=4.7 && <4.8, containers >=0.5.5.1 && <0.6, transformers, bytestring, process, directory, mtl, text, dbus, split, HStringTemplate, blaze-html, blaze-markup, happstack-server
+  build-depends:       base >=4
+                     , bytestring >= 0.10.4.0
+                     , containers >= 0.5.5.1
+                     , directory >= 1.2.1.0
+                     , mtl >= 2.1.3.1
+                     , process >= 1.2.0.0
+                     , split >= 0.2.2
+                     , text >= 1.2.0.4
+                     , happstack-server >= 7.4.1
+                     , HStringTemplate >= 0.7.3
+                     , blaze-markup >= 0.6.3 && < 0.7
+                     , blaze-html >= 0.7.1.0 && < 0.8.0.0
+                     , dbus >= 0.10.9.2
   -- hs-source-dirs:      
   default-language:    Haskell2010
