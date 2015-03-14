@@ -19,6 +19,7 @@ import Text.StringTemplate.GenericStandard
 import Text.Blaze ((!))
 import qualified Text.Blaze.Html5 as H
 import qualified Text.Blaze.Html5.Attributes as A
+import System.Environment (lookupEnv)
 import System.Process
 import System.Directory
 import MusicController (MusicStatus(..), SongInfo(..),  statusMusicMaybe, getSongInfo, getMusicStatus
@@ -184,22 +185,26 @@ extractAddress file =
       line = myfilter $ lines file in
   drop 25 line  
 
-getDBusAddress :: IO (Maybe Address)
-getDBusAddress = do             -- this launches a new dbus because...
+
+-- this might break on different systems
+-- for example ArchLinux does not seem to create .dbus while Gentoo does
+extractDBusAddressFromFile :: IO (Maybe Address)
+extractDBusAddressFromFile = do
   homedir <- getHomeDirectory;
   let path = homedir ++ "/.dbus/session-bus/"
   dir <- getDirectoryContents path;
   let file = path ++ (head dir)
-  -- putStrLn path;
-  -- putStrLn $ head dir;
   content <- readFile file;
-  -- env <- readProcess "dbus-launch" [] [];
-  -- let var = head $ lines env; -- DBUS_SESSION_BUS_ADDRESS=...
-  -- let addr = drop 25 var;
-  -- putStrLn addr;
   let addr = extractAddress content
   putStrLn ("DBus Address: " ++ addr);
   return (parseAddress addr);
+
+getDBusAddress :: IO (Maybe Address)
+getDBusAddress = do
+  env <- lookupEnv "DBUS_SESSION_BUS_ADDRESS";
+  case env of
+    Nothing ->   extractDBusAddressFromFile
+    Just addr -> return (parseAddress addr);
 
 
 main :: IO ()
