@@ -12,7 +12,7 @@ module MusicController ( MusicStatus(..)
                        , playerNext
                        ) where
 
-import Control.Exception (try, tryJust)
+import Control.Exception (try)
 import Data.Int
 import qualified Data.Map as M
 import Data.List.Split (splitOn)

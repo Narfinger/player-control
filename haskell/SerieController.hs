@@ -15,13 +15,12 @@ module SerieController ( SerieviewerStatus(..)
 import DBus
 import DBus.Client (call_, Client, ClientError)
 import Control.Concurrent (threadDelay)
-import Control.Exception (try, tryJust)
-import Control.Monad (guard)
-import Data.Maybe (fromMaybe, isNothing)
+import Control.Exception (try)
+import Data.Maybe (fromMaybe)
 data SerieviewerStatus = Running | NotRunning deriving (Show)
 
 extractException :: Either ClientError MethodReturn -> Maybe MethodReturn
-extractException (Left e)  = Nothing
+extractException (Left _)  = Nothing
 extractException (Right a) = Just a
 
 callDBus :: Client -> ObjectPath -> InterfaceName -> BusName -> MemberName-> IO (Maybe MethodReturn)
@@ -55,7 +54,7 @@ callDBusNames :: Client -> IO (Maybe MethodReturn)
 callDBusNames client =
   let o = objectPath_ "/"
       m = memberName_ "ListNames" in
-  callDBus client "/" "org.freedesktop.DBus" "org.freedesktop.DBus" m
+  callDBus client o "org.freedesktop.DBus" "org.freedesktop.DBus" m
 
 serieStatus :: Maybe MethodReturn -> SerieviewerStatus
 serieStatus Nothing       = NotRunning
@@ -88,10 +87,10 @@ getSerieList client = do
   return list
 
 serieKill :: Client -> IO ()
-serieKill client = do callVLC client "Quit"; return ();
+serieKill client = do _ <- callVLC client "Quit"; return ();
 
 serieNext :: Client -> IO ()
-serieNext client = do callSerie client "playNextInSerie"; return ();
+serieNext client = do _ <- callSerie client "playNextInSerie"; return ();
 
 serieKillAndNext :: Client -> IO ()
 serieKillAndNext client = do
@@ -100,23 +99,23 @@ serieKillAndNext client = do
   serieNext client;
 
 seriePlay :: Client -> Int -> IO ()
-seriePlay client id = do
+seriePlay client sid = do
   let o = objectPath_ "/Serieviewer"
       m = memberName_ "playIndex"
-      i = show id in
+      i = show sid in
    call_ client (methodCall o "org.serieviewer" m)
-   {
-     methodCallDestination = Just "org.serieviewer",
-     methodCallBody = [toVariant i]
-   };
+     {
+       methodCallDestination = Just "org.serieviewer",
+       methodCallBody = [toVariant i]
+     };
    return ()
   
 -- VLC Calls
 vlcPause :: Client -> IO ()
-vlcPause client = do callVLCPlayer client "Pause"; return (); 
+vlcPause client = do _ <- callVLCPlayer client "Pause"; return (); 
 
 vlcPlay :: Client -> IO ()
-vlcPlay client = do callVLCPlayer client "Play"; return ();
+vlcPlay client = do _ <- callVLCPlayer client "Play"; return ();
 
 vlcChapterPrev :: Client -> IO ()
 vlcChapterPrev client = do return ()

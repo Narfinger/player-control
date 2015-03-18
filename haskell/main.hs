@@ -1,26 +1,17 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module Main where
-import Control.Applicative ((<$>), optional)
-import Control.Monad (msum, forM_, when)
-import Control.Monad.Trans  (liftIO, lift)
-import Data.ByteString.Lazy (ByteString)
-import Data.Data
-import Data.Maybe (fromMaybe, isJust, fromJust, isNothing)
-import Data.Text (Text)
-import Data.Text.Lazy (unpack)
-import Data.Typeable
+import Control.Monad (msum, forM_)
+import Control.Monad.Trans  (liftIO)
+import Data.Maybe (fromJust, isNothing)
 import Happstack.Server (Browsing (DisableBrowsing))
-import Happstack.Server (asContentType, nullConf, serveFile, simpleHTTP, simpleHTTPWithSocket
+import Happstack.Server (asContentType, nullConf, serveFile, simpleHTTPWithSocket
                         , ServerPart, toResponse, ok, Response, dir, seeOther, bindIPv4, port
                         , look, serveDirectory)
-import Text.StringTemplate
-import Text.StringTemplate.GenericStandard
 import Text.Blaze ((!))
 import qualified Text.Blaze.Html5 as H
 import qualified Text.Blaze.Html5.Attributes as A
 import System.Environment (lookupEnv)
-import System.Process
 import System.Directory
 import MusicController (MusicStatus(..), SongInfo(..),  statusMusicMaybe, getSongInfo, getMusicStatus
                       , playerStop, playerPlay, playerPause, playerPlayPause, playerPrev
@@ -29,13 +20,14 @@ import SerieController (SerieviewerStatus(..), getSerieviewerStatus, serieKill, 
                        , vlcPlay, vlcPause, vlcChapterPrev, vlcChapterNext, getSerieList)
 
 import DBus (Address, parseAddress)
-import DBus.Client (connect, connectSession, Client)
+import DBus.Client (connect, Client)
 
 data Button = Button { displayname :: String
                        , function :: Client -> IO ()
                        } deriving (Show)
 type Buttons = [(String, Button)]
 
+musicbuttons :: [(String, Button)]
 musicbuttons = [("m_prev",  Button {displayname = "Previous",  function = playerPrev})
                ,("m_next",  Button {displayname = "Next",      function = playerNext})
                ,("m_play",  Button {displayname = "Play",      function = playerPlay})
@@ -43,16 +35,18 @@ musicbuttons = [("m_prev",  Button {displayname = "Previous",  function = player
                ,("m_pp",    Button {displayname = "PlayPause", function = playerPlayPause})
                ,("m_stop",  Button {displayname = "Stop",      function = playerStop})
                ]
+seriebuttons :: [(String, Button)]
 seriebuttons = [("s_kill",  Button {displayname = "Kill Player", function = serieKill})
                ,("s_next",  Button {displayname = "Next", function = serieNext})
                ,("s_kn",    Button {displayname = "Kill and Next", function = serieKillAndNext})
                 ]
+vlcbuttons :: [(String, Button)]
 vlcbuttons   = [("vlc_play",  Button {displayname = "Pause",            function = vlcPause})
                ,("vlc_pause", Button {displayname = "Play",             function = vlcPlay})
 --               ,("vlc_cprev", Button {displayname = "Previous Chapter", function = vlcChapterPrev})
 --               ,("vlc_cnext", Button {displayname = "Next Chapter",     function = vlcChapterNext})
                ] 
-
+buttons :: [(String, Button)]
 buttons = musicbuttons ++ seriebuttons ++ vlcbuttons
 
 bodyTemplate :: H.Html ->H.Html
@@ -133,10 +127,10 @@ indexTemplate song musicstatus seriestatus serielist =
                     forM_ buttonlistSeries (H.td)
                                        
 appTemplate :: String -> H.Html -> H.Html
-appTemplate title body =
+appTemplate t body =
     H.html $ do
       H.head $ do
-        H.title (H.toHtml title)
+        H.title (H.toHtml t)
         H.meta ! A.httpEquiv "Content-Type"
                ! A.content "text/html;charset=utf-8"
       H.body $ do
@@ -155,7 +149,7 @@ getButtonFun :: String -> Client -> IO ()
 getButtonFun key =
   let mbutton = lookup key buttons in
   if isNothing mbutton then
-    \c -> return ()
+    \_ -> return ()
   else
     let button = fromJust mbutton in
     function button
@@ -170,7 +164,7 @@ playPage :: Client -> ServerPart Response
 playPage client = do
   episodenum <- look "what";
   let id = read episodenum ::Int
-  ret <- liftIO $ seriePlay client id;
+  _ <- liftIO $ seriePlay client id;
   seeOther ("/bklubb"::String) (toResponse (""::String))
 
 -- coverPage :: Client -> ServerPart Response
