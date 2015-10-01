@@ -92,7 +92,7 @@ lookupDictionary key def dict =
     fromMaybeVariant def $ fromMaybeVariant defv v
 
 extractTrackInfo :: Maybe MethodReturn -> SongInfo
-extractTrackInfo Nothing       = SongInfo { title = "", artist = "", album = "", arturl = "" }
+extractTrackInfo Nothing       = SongInfo { title = "", artist = "", album = "", arturl = "", duration = 0}
 extractTrackInfo (Just method) =
   let v =  head $ methodReturnBody method  in
   let Just body =  fromVariant v :: Maybe Dictionary
@@ -100,10 +100,10 @@ extractTrackInfo (Just method) =
       title'  = lookupDictionary "title"  "-" dict
       artist' = lookupDictionary "artist" "-" dict
       album'  = lookupDictionary "album"  "-" dict
-      dur'    = lookupDictionary "time"   "-" dict
+--    dur'    = lookupDictionary "time"   "-" dict
       arturl' = lookupDictionary "arturl" "?" dict
       artfile = last $ splitOn "/" arturl' in
-  SongInfo { title = title', artist = artist', album = album', arturl = artfile, duration = dur'}
+  SongInfo { title = title', artist = artist', album = album', arturl = artfile, duration = 0}
 
 extractTrackID :: Maybe MethodReturn -> Maybe Int32
 extractTrackID Nothing       = Nothing

@@ -206,7 +206,7 @@ getDBusAddress = do
 main :: IO ()
 main = do
   let conf = nullConf
-      addr = "127.0.0.1"
+      addr = "0.0.0.0"
   putStrLn "Finding dbus address";
   Just dbusaddress <- getDBusAddress;
   putStrLn "Starting server";
