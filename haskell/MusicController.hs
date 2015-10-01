@@ -28,6 +28,7 @@ data SongInfo = SongInfo { title :: String
                          , artist :: String
                          , album :: String
                          , arturl :: String
+                         , duration :: Int -- duration in secs
                          } deriving (Show) 
 
 statusMusicMaybe :: Maybe MusicStatus -> MusicStatus
@@ -99,9 +100,10 @@ extractTrackInfo (Just method) =
       title'  = lookupDictionary "title"  "-" dict
       artist' = lookupDictionary "artist" "-" dict
       album'  = lookupDictionary "album"  "-" dict
+      dur'    = lookupDictionary "time"   "-" dict
       arturl' = lookupDictionary "arturl" "?" dict
       artfile = last $ splitOn "/" arturl' in
-  SongInfo { title = title', artist = artist', album = album', arturl = artfile  }
+  SongInfo { title = title', artist = artist', album = album', arturl = artfile, duration = dur'}
 
 extractTrackID :: Maybe MethodReturn -> Maybe Int32
 extractTrackID Nothing       = Nothing

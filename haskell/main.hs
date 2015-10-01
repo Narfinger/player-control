@@ -105,10 +105,12 @@ indexTemplate song musicstatus seriestatus serielist =
            H.th $ do "Artist"
            H.th $ do "Title"
            H.th $ do "Album"
+           H.th $ do "Duration"
          H.tr $ do
            H.td $ do H.toHtml $ title $ song
            H.td $ do H.toHtml $ artist $ song
            H.td $ do H.toHtml $ album $ song
+           H.td $ do H.toHtml $ duration $ song
        H.table  $ do 
          H.tr $ forM_ buttonlistMusic (H.td)
        H.img ! A.src coverurl ! A.width "300px" ! A.height "300px"
@@ -204,7 +206,7 @@ getDBusAddress = do
 main :: IO ()
 main = do
   let conf = nullConf
-      addr = "0.0.0.0"
+      addr = "127.0.0.1"
   putStrLn "Finding dbus address";
   Just dbusaddress <- getDBusAddress;
   putStrLn "Starting server";
